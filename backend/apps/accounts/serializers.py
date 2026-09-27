@@ -26,7 +26,15 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         if login_val:
             login_clean = str(login_val).strip().lower()
             is_dailoqa = login_clean.endswith('@dailoqa.com')
-            is_system_admin = login_clean in ['admin@company.com', 'admin', 'sarah.hr@company.com', 'marcus.tech@company.com']
+            is_system_admin = login_clean in [
+                'admin@company.com', 'admin',
+                'sarah.hr@company.com',
+                'marcus.tech@company.com',
+                'elena.qa@company.com',
+                'alex.dev@company.com',
+                'liam.qa@company.com',
+                'maya.ux@company.com'
+            ]
             if not is_dailoqa and not is_system_admin:
                 raise serializers.ValidationError({
                     "detail": "Access restricted: Only official @dailoqa.com email addresses are authorized to sign in."
@@ -37,7 +45,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             ).first()
             if user:
                 attrs['email'] = user.email
-                if user.last_login is None and user.role not in [UserRole.SUPER_ADMIN, UserRole.HR]:
+                if user.last_login is None and user.role not in [UserRole.SUPER_ADMIN, UserRole.HR, UserRole.MANAGER]:
                     raise serializers.ValidationError({
                         "detail": "First-time login detected. Please sign in using OTP sent to your @dailoqa.com email to activate your account and set your password."
                     })

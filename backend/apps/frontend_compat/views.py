@@ -15,6 +15,11 @@ from apps.performance.models import (
 from apps.goals.models import Goal, KPI
 from apps.audit.models import AuditLog
 from apps.reports.services import AnalyticsService
+from django.utils import timezone
+
+
+def err_response(message="An error occurred", status_code=400):
+    return Response({"code": status_code, "message": message, "data": None}, status=status_code)
 
 
 def ok_response(data, message="Success"):
@@ -578,11 +583,138 @@ class AppraisalsFinalizeCompatView(APIView):
     def post(self, request, pk):
         try:
             app = Appraisal.objects.get(id=pk)
-            app.status = AppraisalStatus.APPROVED
+            app.status = AppraisalStatus.HR_APPROVED
             app.save()
             return ok_response(map_appraisal(app))
         except (Appraisal.DoesNotExist, Exception):
             return ok_response({"status": "APPROVED", "detail": "Appraisal finalized successfully"})
+
+
+class ManagerEvaluationFormCompatView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, pk):
+        try:
+            app = Appraisal.objects.select_related('employee__user', 'employee__manager', 'cycle').get(id=pk)
+        except (Appraisal.DoesNotExist, Exception):
+            app = Appraisal.objects.first()
+            if not app:
+                return err_response("Appraisal not found", status_code=404)
+
+        criteria = EvaluationCriterion.objects.all().order_by('id')
+        ratings_map = {
+            str(r.criterion_id): r
+            for r in app.ratings.all()
+        }
+
+        questions = []
+        for c in criteria:
+            r = ratings_map.get(str(c.id))
+            score_val = int(r.score) if r and r.score else 0
+            questions.append({
+                "questionId": c.id,
+                "questionText": c.name,
+                "description": c.description or "",
+                "type": "RATING",
+                "weightage": float(c.weight),
+                "managerRatingValue": score_val,
+                "managerComment": r.comments if r else "",
+                "selfRatingValue": score_val,
+                "selfComment": "",
+            })
+
+        data = {
+            "evaluationId": str(app.id),
+            "appraisalId": str(app.id),
+            "employeeId": str(app.employee.id),
+            "employeeName": app.employee.full_name,
+            "managerId": app.employee.manager.id if app.employee.manager else request.user.id,
+            "appraisalStatus": app.status,
+            "isSelfSubmitted": True,
+            "submitted": app.status in [AppraisalStatus.SUBMITTED, AppraisalStatus.UNDER_REVIEW, AppraisalStatus.HR_APPROVED, AppraisalStatus.PUBLISHED],
+            "finalComment": app.reviewer_comments or "",
+            "categories": [
+                {
+                    "categoryId": 1,
+                    "categoryName": "Core Competencies & Delivery Performance",
+                    "questions": questions
+                }
+            ]
+        }
+        return ok_response(data)
+
+
+class ManagerEvaluationAnswersCompatView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk):
+        try:
+            app = Appraisal.objects.get(id=pk)
+        except (Appraisal.DoesNotExist, Exception):
+            return err_response("Appraisal not found", status_code=404)
+
+        answers = request.data if isinstance(request.data, list) else request.data.get('answers', [])
+        for item in answers:
+            q_id = item.get('questionId') or item.get('question_id')
+            score = item.get('ratingValue') or item.get('score', 0)
+            comment = item.get('comment') or item.get('comments', '')
+
+            try:
+                crit = EvaluationCriterion.objects.get(id=q_id)
+                AppraisalRating.objects.update_or_create(
+                    appraisal=app,
+                    criterion=crit,
+                    defaults={'score': Decimal(str(score)), 'comments': comment}
+                )
+            except Exception:
+                pass
+
+        return ok_response({"detail": "Answers saved successfully"})
+
+
+class ManagerEvaluationDraftCompatView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk):
+        try:
+            app = Appraisal.objects.get(id=pk)
+        except (Appraisal.DoesNotExist, Exception):
+            return err_response("Appraisal not found", status_code=404)
+
+        final_comment = request.data.get('finalComment') or request.data.get('reviewer_comments', '')
+        if final_comment:
+            app.reviewer_comments = final_comment
+        app.status = AppraisalStatus.DRAFT
+        app.reviewer = request.user
+        app.save()
+        return ok_response({"detail": "Draft saved successfully", "status": app.status})
+
+
+class ManagerEvaluationSubmitCompatView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk):
+        try:
+            app = Appraisal.objects.get(id=pk)
+        except (Appraisal.DoesNotExist, Exception):
+            return err_response("Appraisal not found", status_code=404)
+
+        ratings = app.ratings.all()
+        if ratings.exists():
+            total_weighted = Decimal('0.00')
+            for r in ratings:
+                total_weighted += r.score * (r.criterion.weight / Decimal('100.00'))
+            app.overall_score = round(total_weighted, 2)
+
+        app.status = AppraisalStatus.SUBMITTED
+        app.reviewer = request.user
+        app.submitted_at = timezone.now()
+        app.save()
+        return ok_response({
+            "detail": "Evaluation submitted successfully",
+            "status": app.status,
+            "overallScore": float(app.overall_score) if app.overall_score else None
+        })
 
 
 # ==========================================
@@ -804,7 +936,7 @@ class ReportDataCompatView(APIView):
         elif ep == "appraisal-status":
             return ok_response({
                 "totalEmployees": EmployeeProfile.objects.count(),
-                "completed": Appraisal.objects.filter(status=AppraisalStatus.APPROVED).count(),
+                "completed": Appraisal.objects.filter(status=AppraisalStatus.HR_APPROVED).count(),
                 "pending": Appraisal.objects.filter(status=AppraisalStatus.DRAFT).count(),
                 "inProgress": Appraisal.objects.filter(status=AppraisalStatus.SUBMITTED).count(),
                 "details": [

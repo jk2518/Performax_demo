@@ -14,6 +14,10 @@ import {
   ShieldCheck,
   Sparkles,
   Zap,
+  Briefcase,
+  GraduationCap,
+  UserCog,
+  User,
 } from "lucide-react";
 import { toast } from "react-toastify";
 
@@ -21,12 +25,31 @@ const validateCorporateEmail = (emailStr: string): string | null => {
   const clean = emailStr.trim().toLowerCase();
   if (!clean) return "Please enter your email address.";
   const isDailoqa = clean.endsWith("@dailoqa.com");
-  const isSystemAdmin = ["admin@company.com", "admin", "sarah.hr@company.com", "marcus.tech@company.com"].includes(clean);
+  const isSystemAdmin = [
+    "admin@company.com",
+    "admin",
+    "sarah.hr@company.com",
+    "marcus.tech@company.com",
+    "elena.qa@company.com",
+    "alex.dev@company.com",
+    "liam.qa@company.com",
+    "maya.ux@company.com",
+  ].includes(clean);
   if (!isDailoqa && !isSystemAdmin) {
     return "Access restricted: Only official @dailoqa.com corporate email addresses are authorized to sign in.";
   }
   return null;
 };
+
+export const PERSON_OPTIONS = [
+  { name: "Jatin Maurya", email: "jatin.maurya@dailoqa.com", password: "jatin", badge: "Intern / Full-Stack" },
+  { name: "Jatin Malik", email: "jatin.malik@dailoqa.com", password: "jatin", badge: "Intern / Backend" },
+  { name: "Aakash Yadav", email: "aakash.yadav@dailoqa.com", password: "aakash", badge: "Intern / QA" },
+  { name: "Aditi Gupta", email: "aditi.gupta@dailoqa.com", password: "aditi", badge: "Intern / Frontend" },
+  { name: "Tanvi Kad", email: "tanvi.kad@dailoqa.com", password: "tanvi", badge: "Intern / DevOps" },
+  { name: "Ananya Jain", email: "ananya.jain@dailoqa.com", password: "ananya", badge: "Intern / Automation" },
+  { name: "Himanshu Gupta", email: "himanshu.gupta@dailoqa.com", password: "himanshu", badge: "Intern / QA" },
+];
 
 const LoginPage = () => {
   const [loginMode, setLoginMode] = useState<"password" | "otp">("password");
@@ -50,6 +73,42 @@ const LoginPage = () => {
   const location = useLocation();
 
   const from = location.state?.from?.pathname || "/dashboard";
+
+  const [quickLoginLoading, setQuickLoginLoading] = useState<string | null>(null);
+  const [selectedPerson, setSelectedPerson] = useState(PERSON_OPTIONS[0]);
+
+  const handleQuickLogin = async (
+    targetEmail: string,
+    targetPass: string,
+    roleLabel: string,
+    personName?: string
+  ) => {
+    setEmail(targetEmail);
+    setPassword(targetPass);
+    setLoginMode("password");
+    setError("");
+    setQuickLoginLoading(roleLabel);
+
+    try {
+      const response = await login({
+        email: targetEmail.trim().toLowerCase(),
+        password: targetPass,
+      }).unwrap();
+      dispatch(loginSuccess(response));
+      toast.success(`Welcome, ${personName || roleLabel}! Signed in successfully.`);
+      navigate(from, { replace: true });
+    } catch (err: any) {
+      const msg =
+        err?.data?.detail ||
+        err?.data?.message ||
+        err?.message ||
+        "Invalid credentials. Please try again.";
+      setError(msg);
+      toast.error(msg);
+    } finally {
+      setQuickLoginLoading(null);
+    }
+  };
 
   // Clean any legacy lockout keys on mount
   useEffect(() => {
@@ -231,9 +290,205 @@ const LoginPage = () => {
             <h1 className="text-2xl font-bold tracking-tight text-slate-900 mb-2">
               Sign In to PERFORMAX
             </h1>
-            <p className="text-sm text-slate-500 mb-6">
-              Enterprise Performance Management System (EPMS).
-            </p>
+            {/* Quick Demo Role Logins */}
+            <div className="mb-6 p-4 bg-gradient-to-br from-slate-50 to-indigo-50/40 border border-slate-200/90 rounded-2xl shadow-xs">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-5 h-5 rounded-md bg-indigo-600 text-white flex items-center justify-center">
+                    <Sparkles size={12} />
+                  </div>
+                  <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                    Quick Role Sign-In
+                  </span>
+                </div>
+                <span className="text-[10px] font-semibold text-indigo-600 bg-indigo-100/60 px-2 py-0.5 rounded-full">
+                  1-Click Access
+                </span>
+              </div>
+
+              {/* 4 Primary System Roles Grid: HR, User, Intern, Tech Manager */}
+              <div className="grid grid-cols-2 gap-2 mb-3">
+                {/* 1. HR Login */}
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleQuickLogin(
+                      "sarah.hr@company.com",
+                      "SarahPassword123!",
+                      "HR Lead",
+                      "Sarah Jenkins"
+                    )
+                  }
+                  disabled={!!quickLoginLoading || isLoading}
+                  className="flex items-center gap-2.5 p-2.5 bg-white hover:bg-purple-50/70 border border-purple-200/80 hover:border-purple-400 rounded-xl transition-all text-left shadow-2xs group cursor-pointer disabled:opacity-60"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                    {quickLoginLoading === "HR Lead" ? (
+                      <span className="w-3.5 h-3.5 border-2 border-purple-600 border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <UserCog size={16} />
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-[12px] font-bold text-slate-800 truncate">HR Login</div>
+                    <div className="text-[10px] text-purple-600 font-medium truncate">Sarah Jenkins</div>
+                  </div>
+                </button>
+
+                {/* 2. User / Employee Login */}
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleQuickLogin(
+                      "alex.dev@company.com",
+                      "AlexPassword123!",
+                      "User / Dev",
+                      "Alex Chen"
+                    )
+                  }
+                  disabled={!!quickLoginLoading || isLoading}
+                  className="flex items-center gap-2.5 p-2.5 bg-white hover:bg-blue-50/70 border border-blue-200/80 hover:border-blue-400 rounded-xl transition-all text-left shadow-2xs group cursor-pointer disabled:opacity-60"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                    {quickLoginLoading === "User / Dev" ? (
+                      <span className="w-3.5 h-3.5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <Briefcase size={16} />
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-[12px] font-bold text-slate-800 truncate">User Login</div>
+                    <div className="text-[10px] text-blue-600 font-medium truncate">Alex Chen (Dev)</div>
+                  </div>
+                </button>
+
+                {/* 3. Intern Login */}
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleQuickLogin(
+                      "aakash.yadav@dailoqa.com",
+                      "aakash",
+                      "Intern",
+                      "Aakash Yadav"
+                    )
+                  }
+                  disabled={!!quickLoginLoading || isLoading}
+                  className="flex items-center gap-2.5 p-2.5 bg-white hover:bg-emerald-50/70 border border-emerald-200/80 hover:border-emerald-400 rounded-xl transition-all text-left shadow-2xs group cursor-pointer disabled:opacity-60"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                    {quickLoginLoading === "Intern" ? (
+                      <span className="w-3.5 h-3.5 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <GraduationCap size={16} />
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-[12px] font-bold text-slate-800 truncate">Intern Login</div>
+                    <div className="text-[10px] text-emerald-600 font-medium truncate">Aakash Yadav</div>
+                  </div>
+                </button>
+
+                {/* 4. Tech Manager Login */}
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleQuickLogin(
+                      "elena.qa@company.com",
+                      "ElenaPassword123!",
+                      "Tech Manager",
+                      "Elena Rostova"
+                    )
+                  }
+                  disabled={!!quickLoginLoading || isLoading}
+                  className="flex items-center gap-2.5 p-2.5 bg-white hover:bg-rose-50/70 border border-rose-200/80 hover:border-rose-400 rounded-xl transition-all text-left shadow-2xs group cursor-pointer disabled:opacity-60"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-rose-100 text-rose-700 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                    {quickLoginLoading === "Tech Manager" ? (
+                      <span className="w-3.5 h-3.5 border-2 border-rose-600 border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <ShieldCheck size={16} />
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-[12px] font-bold text-slate-800 truncate">Tech Manager</div>
+                    <div className="text-[10px] text-rose-600 font-medium truncate">Elena Rostova</div>
+                  </div>
+                </button>
+              </div>
+
+              {/* 5. Person Login (Interactive Selection) */}
+              <div className="p-2.5 bg-white border border-amber-200/90 rounded-xl shadow-2xs">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-7 h-7 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                      <User size={15} />
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-[10.5px] font-bold text-slate-700 uppercase tracking-wider block">
+                        Person Login
+                      </span>
+                      <select
+                        value={selectedPerson.email}
+                        onChange={(e) => {
+                          const p = PERSON_OPTIONS.find((opt) => opt.email === e.target.value);
+                          if (p) setSelectedPerson(p);
+                        }}
+                        className="text-xs font-semibold text-slate-800 bg-transparent border-none outline-none cursor-pointer pr-4"
+                      >
+                        {PERSON_OPTIONS.map((p) => (
+                          <option key={p.email} value={p.email}>
+                            {p.name} ({p.badge})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleQuickLogin(
+                        selectedPerson.email,
+                        selectedPerson.password,
+                        "Person",
+                        selectedPerson.name
+                      )
+                    }
+                    disabled={!!quickLoginLoading || isLoading}
+                    className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center gap-1 shrink-0 disabled:opacity-60"
+                  >
+                    {quickLoginLoading === "Person" ? (
+                      <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <>
+                        <span>Sign In</span>
+                        <LogIn size={13} />
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Super Admin Quick Link */}
+              <div className="mt-2.5 pt-2 border-t border-slate-200/70 flex items-center justify-between text-[11px] text-slate-500">
+                <span>Looking for Super Admin?</span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleQuickLogin(
+                      "admin@company.com",
+                      "AdminPassword123!",
+                      "Super Admin",
+                      "Administrator"
+                    )
+                  }
+                  className="font-bold text-indigo-600 hover:text-indigo-800 transition-colors cursor-pointer"
+                >
+                  Sign in as Admin →
+                </button>
+              </div>
+            </div>
 
             {/* Mode Switcher */}
             <div className="flex bg-slate-100 p-1 rounded-xl mb-6 border border-slate-200/60">

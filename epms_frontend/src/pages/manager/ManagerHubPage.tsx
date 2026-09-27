@@ -534,7 +534,7 @@ export const ManagerHubPage: React.FC = () => {
                     <button
                       onClick={() => {
                         if (mentee.activeAppraisal?.id) {
-                          navigate(`/appraisal/evaluation/${mentee.activeAppraisal.id}`);
+                          navigate(`/appraisal/${mentee.activeAppraisal.id}/manager-evaluation`);
                         } else {
                           navigate('/appraisal');
                         }

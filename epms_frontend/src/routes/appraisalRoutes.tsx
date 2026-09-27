@@ -16,6 +16,7 @@ export const appraisalRoutes = [
   { path: "/appraisal/forms/:id", element: <FormView /> },
   { path: "/appraisal/:id/self-assessment", element: <SelfAssessment /> },
   { path: "/appraisal/:id/manager-evaluation", element: <ManagerEvaluation /> },
+  { path: "/appraisal/evaluation/:id", element: <ManagerEvaluation /> },
   { path: "/appraisal/:id/results", element: <ResultPage /> },
   { path: "/appraisal/:id/score", element: <ScorePreviewPage /> },
   { path: "/appraisal/diagnostic", element: <DiagnosticPage /> },

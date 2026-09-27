@@ -19,6 +19,10 @@ from apps.frontend_compat.views import (
     AppraisalsDetailCompatView,
     AppraisalsScoreBreakdownCompatView,
     AppraisalsFinalizeCompatView,
+    ManagerEvaluationFormCompatView,
+    ManagerEvaluationAnswersCompatView,
+    ManagerEvaluationDraftCompatView,
+    ManagerEvaluationSubmitCompatView,
     KpiActiveCycleCompatView,
     KpiAuditOrgCompatView,
     KpiAuditTeamCompatView,
@@ -85,6 +89,12 @@ urlpatterns = [
     re_path(r'^appraisals/(?P<pk>[^/]+)/finalize/?$', AppraisalsFinalizeCompatView.as_view(), name='compat_appraisal_finalize'),
     re_path(r'^appraisals/360/?$', AppraisalsDetailCompatView.as_view(), {'pk': '360'}, name='compat_appraisals_360'),
     re_path(r'^appraisals/(?P<pk>[^/]+)/?$', AppraisalsDetailCompatView.as_view(), name='compat_appraisal_detail'),
+
+    # Manager Evaluations
+    re_path(r'^manager-evaluations/form/(?P<pk>[^/]+)/?$', ManagerEvaluationFormCompatView.as_view(), name='compat_mgr_eval_form'),
+    re_path(r'^manager-evaluations/(?P<pk>[^/]+)/answers/?$', ManagerEvaluationAnswersCompatView.as_view(), name='compat_mgr_eval_answers'),
+    re_path(r'^manager-evaluations/(?P<pk>[^/]+)/draft/?$', ManagerEvaluationDraftCompatView.as_view(), name='compat_mgr_eval_draft'),
+    re_path(r'^manager-evaluations/(?P<pk>[^/]+)/submit/?$', ManagerEvaluationSubmitCompatView.as_view(), name='compat_mgr_eval_submit'),
 
     # Continuous Feedback & Tags
     re_path(r'^tags/(?P<pk>[^/]+)/?$', TagsCompatView.as_view(), name='compat_tags_detail'),
