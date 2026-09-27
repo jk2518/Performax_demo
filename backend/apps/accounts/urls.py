@@ -8,6 +8,7 @@ from apps.accounts.views import (
     ValidateTokenView,
     SendOTPView,
     VerifyOTPView,
+    CheckUserStatusView,
 )
 
 urlpatterns = [
@@ -19,4 +20,5 @@ urlpatterns = [
     re_path(r'^validate/?$', ValidateTokenView.as_view(), name='auth_validate'),
     re_path(r'^otp/send/?$', SendOTPView.as_view(), name='auth_otp_send'),
     re_path(r'^otp/verify/?$', VerifyOTPView.as_view(), name='auth_otp_verify'),
+    re_path(r'^check-status/?$', CheckUserStatusView.as_view(), name='auth_check_status'),
 ]

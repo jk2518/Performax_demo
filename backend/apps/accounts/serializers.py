@@ -24,12 +24,23 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         from django.db.models import Q
         login_val = attrs.get('email') or attrs.get('username')
         if login_val:
-            login_clean = str(login_val).strip()
+            login_clean = str(login_val).strip().lower()
+            is_dailoqa = login_clean.endswith('@dailoqa.com')
+            is_system_admin = login_clean in ['admin@company.com', 'admin', 'sarah.hr@company.com', 'marcus.tech@company.com']
+            if not is_dailoqa and not is_system_admin:
+                raise serializers.ValidationError({
+                    "detail": "Access restricted: Only official @dailoqa.com email addresses are authorized to sign in."
+                })
+
             user = User.objects.filter(
                 Q(email__iexact=login_clean) | Q(username__iexact=login_clean)
             ).first()
             if user:
                 attrs['email'] = user.email
+                if user.last_login is None and user.role not in [UserRole.SUPER_ADMIN, UserRole.HR]:
+                    raise serializers.ValidationError({
+                        "detail": "First-time login detected. Please sign in using OTP sent to your @dailoqa.com email to activate your account and set your password."
+                    })
                 # Support both Admin@123 and AdminPassword123! for demo admin
                 password = attrs.get('password')
                 if not user.check_password(password):
@@ -128,15 +139,26 @@ class SendOTPSerializer(serializers.Serializer):
 
     def validate_email(self, value):
         norm_email = value.lower().strip()
+        is_dailoqa = norm_email.endswith('@dailoqa.com')
+        is_system_admin = norm_email in ['admin@company.com', 'admin', 'sarah.hr@company.com', 'marcus.tech@company.com']
+        if not is_dailoqa and not is_system_admin:
+            raise serializers.ValidationError("Access restricted: Only official @dailoqa.com corporate email addresses are authorized.")
+
         if not User.objects.filter(email__iexact=norm_email, is_active=True).exists():
-            raise serializers.ValidationError("No active user found with this email address.")
+            raise serializers.ValidationError("No active user found with this @dailoqa.com email address. Please contact HR.")
         return norm_email
 
 
 class VerifyOTPSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
     otp = serializers.CharField(required=True, min_length=4, max_length=6)
+    new_password = serializers.CharField(required=False, allow_blank=True, min_length=4)
 
     def validate_email(self, value):
-        return value.lower().strip()
+        norm_email = value.lower().strip()
+        is_dailoqa = norm_email.endswith('@dailoqa.com')
+        is_system_admin = norm_email in ['admin@company.com', 'admin', 'sarah.hr@company.com', 'marcus.tech@company.com']
+        if not is_dailoqa and not is_system_admin:
+            raise serializers.ValidationError("Access restricted: Only official @dailoqa.com corporate email addresses are authorized.")
+        return norm_email
 

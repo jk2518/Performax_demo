@@ -18,11 +18,22 @@ import {
 import { toast } from "react-toastify";
 
 const DEMO_ACCOUNTS = [
-  { role: "Super Admin", email: "admin@company.com", pass: "Admin@123", badge: "Full Access" },
-  { role: "HR Partner", email: "sarah.hr@company.com", pass: "SarahPassword123!", badge: "HR Ops" },
+  { role: "Dailoqa Intern (1st Time)", email: "tanvi.kad@dailoqa.com", pass: "", badge: "OTP Activation" },
+  { role: "Dailoqa Intern (Password)", email: "jatin.maurya@dailoqa.com", pass: "jatin", badge: "Password" },
   { role: "Tech Manager", email: "marcus.tech@company.com", pass: "MarcusPassword123!", badge: "Evaluator" },
-  { role: "Intern", email: "alex.dev@company.com", pass: "AlexPassword123!", badge: "Self-Review" },
+  { role: "Super Admin", email: "admin@company.com", pass: "Admin@123", badge: "Full Access" },
 ];
+
+const validateCorporateEmail = (emailStr: string): string | null => {
+  const clean = emailStr.trim().toLowerCase();
+  if (!clean) return "Please enter your email address.";
+  const isDailoqa = clean.endsWith("@dailoqa.com");
+  const isSystemAdmin = ["admin@company.com", "admin", "sarah.hr@company.com", "marcus.tech@company.com"].includes(clean);
+  if (!isDailoqa && !isSystemAdmin) {
+    return "Access restricted: Only official @dailoqa.com corporate email addresses are authorized to sign in.";
+  }
+  return null;
+};
 
 const LoginPage = () => {
   const [loginMode, setLoginMode] = useState<"password" | "otp">("password");
@@ -30,12 +41,15 @@ const LoginPage = () => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
-  // OTP state
+  // OTP and First-Time Password Set state
   const [otpCode, setOtpCode] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const [otpInfo, setOtpInfo] = useState<string | null>(null);
   const [isOtpSending, setIsOtpSending] = useState(false);
   const [isOtpVerifying, setIsOtpVerifying] = useState(false);
+  const [userStatus, setUserStatus] = useState<{ isNewUser?: boolean; firstName?: string } | null>(null);
 
   const [login, { isLoading }] = useLoginMutation();
   const dispatch = useAppDispatch();
@@ -59,8 +73,14 @@ const LoginPage = () => {
     e.preventDefault();
     setError("");
 
+    const emailErr = validateCorporateEmail(email);
+    if (emailErr) {
+      setError(emailErr);
+      return;
+    }
+
     try {
-      const response = await login({ email, password }).unwrap();
+      const response = await login({ email: email.trim().toLowerCase(), password }).unwrap();
       dispatch(loginSuccess(response));
       navigate(from, { replace: true });
     } catch (err: any) {
@@ -69,25 +89,48 @@ const LoginPage = () => {
         err?.data?.message ||
         err?.message ||
         "Invalid credentials. Please try again.";
-      setError(msg);
+      if (msg.includes("First-time login detected") || msg.includes("OTP")) {
+        setLoginMode("otp");
+        setError(msg);
+        toast.info("First-time login: Please verify with OTP to activate your account and set your password.");
+      } else {
+        setError(msg);
+      }
     }
   };
 
   // Handle Send OTP (Module 1 in notebook)
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim()) {
-      setError("Please enter your registered email address.");
+    const emailErr = validateCorporateEmail(email);
+    if (emailErr) {
+      setError(emailErr);
       return;
     }
+
     setError("");
     setIsOtpSending(true);
 
     try {
+      // Check user status
+      try {
+        const statusRes = await fetch("/api/auth/check-status/", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: email.trim().toLowerCase() }),
+        });
+        const statusData = await statusRes.json();
+        if (statusData.data) {
+          setUserStatus(statusData.data);
+        }
+      } catch {
+        // non-blocking
+      }
+
       const res = await fetch("/api/auth/otp/send/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim() }),
+        body: JSON.stringify({ email: email.trim().toLowerCase() }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -95,60 +138,84 @@ const LoginPage = () => {
       }
       setOtpSent(true);
       if (data.data?.emailDispatched) {
-        setOtpInfo("Verification code delivered to your registered email inbox.");
-        toast.success("Verification code dispatched to your email!");
+        setOtpInfo("Verification code delivered to your registered @dailoqa.com inbox.");
+        toast.success("Verification code dispatched to your Dailoqa email!");
       } else {
         setOtpInfo(data.data?.otp ? `Dev Passcode: ${data.data.otp}` : "Verification code generated.");
         toast.info("Passcode generated! Enter code or use universal passcode.");
       }
     } catch (err: any) {
-      setError(err.message || "Could not dispatch OTP. Verify your email address.");
+      setError(err.message || "Could not dispatch OTP. Verify your Dailoqa email address.");
     } finally {
       setIsOtpSending(false);
     }
   };
 
-  // Handle Verify OTP & Login (Module 1 in notebook)
+  // Handle Verify OTP & Login
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!otpCode.trim()) {
       setError("Please enter the 6-digit verification code.");
       return;
     }
+
+    if (newPassword.trim()) {
+      if (newPassword.trim().length < 4) {
+        setError("Your new password must be at least 4 characters long.");
+        return;
+      }
+      if (confirmPassword && newPassword.trim() !== confirmPassword.trim()) {
+        setError("Passwords do not match. Please verify both fields.");
+        return;
+      }
+    }
+
     setError("");
     setIsOtpVerifying(true);
 
     try {
+      const payload: any = {
+        email: email.trim().toLowerCase(),
+        otp: otpCode.trim(),
+      };
+      if (newPassword.trim()) {
+        payload.new_password = newPassword.trim();
+      }
+
       const res = await fetch("/api/auth/otp/verify/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim(), otp: otpCode.trim() }),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (!res.ok) {
         throw new Error(data.message || "Invalid or expired verification code.");
       }
 
-      const authData = data.data;
+      const authData = data.data || data;
       const userPayload: any = {
-        accessToken: authData.access,
-        token: authData.access,
-        refreshToken: authData.refresh,
+        accessToken: authData.access || authData.accessToken,
+        token: authData.access || authData.accessToken,
+        refreshToken: authData.refresh || authData.refreshToken,
         user: {
-          id: authData.user.id,
-          username: authData.user.username,
-          email: authData.user.email,
-          staffName: authData.profile?.full_name || authData.user.username,
-          role: authData.roles?.[0] || "INTERN",
-          department: authData.profile?.department,
-          designation: authData.profile?.designation,
-          roles: authData.roles || ["INTERN"],
-          permissions: authData.permissions || [],
+          id: authData.user?.id,
+          username: authData.user?.username,
+          email: authData.user?.email,
+          staffName: authData.user?.profile?.full_name || authData.user?.username,
+          role: authData.user?.roles?.[0] || authData.user?.role || "INTERN",
+          department: authData.user?.profile?.department,
+          designation: authData.user?.profile?.designation,
+          roles: authData.user?.roles || ["INTERN"],
+          permissions: authData.user?.permissions || [],
         },
       };
 
       dispatch(loginSuccess(userPayload as any));
-      toast.success("Authenticated via OTP!");
+      if (authData.isNewUser || newPassword.trim()) {
+        toast.success("Account activated & password saved! Welcome to Dailoqa.");
+      } else {
+        toast.success("Authenticated via OTP!");
+      }
       navigate(from, { replace: true });
     } catch (err: any) {
       setError(err.message || "OTP verification failed. Please try again.");
@@ -160,7 +227,17 @@ const LoginPage = () => {
   const handleQuickPersona = (account: (typeof DEMO_ACCOUNTS)[0]) => {
     setEmail(account.email);
     setPassword(account.pass);
+    setNewPassword("");
+    setConfirmPassword("");
     setError("");
+    setOtpSent(false);
+    setOtpCode("");
+    setUserStatus(null);
+    if (!account.pass) {
+      setLoginMode("otp");
+    } else {
+      setLoginMode("password");
+    }
   };
 
   return (
@@ -195,7 +272,7 @@ const LoginPage = () => {
                     : "text-slate-500 hover:text-slate-800"
                 }`}
               >
-                Password Login
+                Password Sign-In
               </button>
               <button
                 type="button"
@@ -209,7 +286,7 @@ const LoginPage = () => {
                     : "text-slate-500 hover:text-slate-800"
                 }`}
               >
-                One-Time Passcode (OTP)
+                First-Time / OTP Login
               </button>
             </div>
 
@@ -225,16 +302,21 @@ const LoginPage = () => {
             {loginMode === "password" ? (
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">
-                    Corporate Email
-                  </label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600">
+                      Dailoqa Email
+                    </label>
+                    <span className="text-[10.5px] font-medium text-indigo-600">
+                      @dailoqa.com
+                    </span>
+                  </div>
                   <div className="relative">
                     <Mail size={16} className="absolute left-3.5 top-3 text-slate-400" />
                     <input
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="name@company.com"
+                      placeholder="firstname.lastname@dailoqa.com"
                       required
                       className="w-full bg-slate-50/80 focus:bg-white text-sm text-slate-900 pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/10 transition-all outline-none"
                     />
@@ -275,30 +357,51 @@ const LoginPage = () => {
                     </span>
                   )}
                 </button>
+
+                <div className="text-center pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLoginMode("otp");
+                      setError("");
+                    }}
+                    className="text-xs text-indigo-600 hover:text-indigo-800 font-semibold transition-colors"
+                  >
+                    First time logging in or forgot password? Sign in with OTP →
+                  </button>
+                </div>
               </form>
             ) : (
               /* OTP Login Form */
               <form onSubmit={otpSent ? handleVerifyOtp : handleSendOtp} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">
-                    Registered Email Address
-                  </label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600">
+                      Dailoqa Corporate Email
+                    </label>
+                    <span className="text-[10.5px] font-medium text-indigo-600">
+                      @dailoqa.com
+                    </span>
+                  </div>
                   <div className="relative">
                     <Mail size={16} className="absolute left-3.5 top-3 text-slate-400" />
                     <input
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="alex.dev@company.com"
+                      placeholder="firstname.lastname@dailoqa.com"
                       required
                       disabled={otpSent}
                       className="w-full bg-slate-50/80 focus:bg-white text-sm text-slate-900 pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/10 transition-all outline-none disabled:opacity-60"
                     />
                   </div>
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    Only @dailoqa.com email addresses are authorized to receive verification codes.
+                  </p>
                 </div>
 
                 {otpSent && (
-                  <div className="animate-fade-in space-y-3">
+                  <div className="animate-fade-in space-y-3.5">
                     {otpInfo && (
                       <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-xl text-xs text-indigo-900 flex items-center justify-between gap-2">
                         <span className="flex items-center gap-2 font-medium">
@@ -319,6 +422,7 @@ const LoginPage = () => {
                         )}
                       </div>
                     )}
+
                     <div>
                       <div className="flex items-center justify-between mb-1.5">
                         <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600">
@@ -345,6 +449,67 @@ const LoginPage = () => {
                         />
                       </div>
                     </div>
+
+                    {/* Set Account Password for First-Time / Returning Users */}
+                    <div className="p-3.5 bg-slate-50/90 border border-slate-200 rounded-xl space-y-3">
+                      <div className="flex items-center justify-between">
+                        <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700">
+                          Set Account Password
+                        </label>
+                        <span className="text-[10px] text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                          Optional / 1st Time
+                        </span>
+                      </div>
+                      <p className="text-[11.5px] text-slate-500">
+                        Create a password now to sign in with password next time.
+                      </p>
+                      <div className="relative">
+                        <Lock size={16} className="absolute left-3.5 top-3 text-slate-400" />
+                        <input
+                          type="password"
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          placeholder="Create password (min 4 chars)"
+                          className="w-full bg-white text-sm text-slate-900 pl-10 pr-4 py-2 rounded-lg border border-slate-200 focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/10 transition-all outline-none"
+                        />
+                      </div>
+                      {newPassword && (
+                        <div className="relative animate-fade-in">
+                          <Lock size={16} className="absolute left-3.5 top-3 text-slate-400" />
+                          <input
+                            type="password"
+                            value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            placeholder="Confirm password"
+                            className="w-full bg-white text-sm text-slate-900 pl-10 pr-4 py-2 rounded-lg border border-slate-200 focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/10 transition-all outline-none"
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex items-center justify-between text-xs pt-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setOtpSent(false);
+                          setOtpCode("");
+                          setNewPassword("");
+                          setConfirmPassword("");
+                          setError("");
+                        }}
+                        className="text-slate-500 hover:text-slate-800 transition-colors"
+                      >
+                        ← Change Email
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleSendOtp}
+                        disabled={isOtpSending}
+                        className="text-indigo-600 hover:text-indigo-800 font-semibold transition-colors"
+                      >
+                        Resend Code
+                      </button>
+                    </div>
                   </div>
                 )}
 
@@ -360,12 +525,12 @@ const LoginPage = () => {
                   ) : otpSent ? (
                     <span className="flex items-center justify-center gap-2">
                       <ShieldCheck size={16} />
-                      Verify & Access Workspace
+                      {newPassword.trim() ? "Verify OTP & Save Password" : "Verify & Access Workspace"}
                     </span>
                   ) : (
                     <span className="flex items-center justify-center gap-2">
                       <Zap size={16} />
-                      Send Verification Code
+                      Send Verification Code to @dailoqa.com
                     </span>
                   )}
                 </button>

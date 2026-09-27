@@ -209,6 +209,17 @@ class VerifyOTPView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
 
+        is_new_user = (user.last_login is None)
+
+        # Allow user to set their password upon OTP verification (e.g. for first-time activation)
+        new_password = serializer.validated_data.get('new_password') or request.data.get('new_password')
+        if new_password and str(new_password).strip():
+            user.set_password(str(new_password).strip())
+
+        # Update last_login
+        user.last_login = timezone.now()
+        user.save()
+
         # Generate JWT tokens
         refresh = RefreshToken.for_user(user)
         refresh['role'] = user.role
@@ -244,20 +255,67 @@ class VerifyOTPView(APIView):
             'roles': roles,
             'permissions': [f"ROLE_{r}" for r in roles] + ["ALL"],
             'profile': profile_data,
+            'isNewUser': is_new_user,
         }
 
         return Response({
             'code': 200,
-            'message': 'OTP verification successful. Welcome back!',
+            'message': 'Account activated! Welcome to Dailoqa.' if is_new_user else 'OTP verification successful. Welcome back!',
             'access': access_token,
             'refresh': refresh_token,
             'accessToken': access_token,
             'refreshToken': refresh_token,
             'user': user_dict,
+            'isNewUser': is_new_user,
             'data': {
                 'accessToken': access_token,
                 'refreshToken': refresh_token,
                 'user': user_dict,
+                'isNewUser': is_new_user,
+            }
+        })
+
+
+class CheckUserStatusView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        email = str(request.data.get('email', '')).lower().strip()
+        if not email:
+            return Response({'code': 400, 'message': 'Email address is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        is_dailoqa = email.endswith('@dailoqa.com')
+        is_system_admin = email in ['admin@company.com', 'admin', 'sarah.hr@company.com', 'marcus.tech@company.com']
+        if not is_dailoqa and not is_system_admin:
+            return Response({
+                'code': 403,
+                'message': 'Access restricted: Only official @dailoqa.com email addresses are authorized to sign in.',
+                'isDailoqa': False,
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        user = User.objects.filter(email__iexact=email, is_active=True).first()
+        if not user:
+            return Response({
+                'code': 404,
+                'message': 'No registered Dailoqa account found with this email. Please contact HR.',
+                'exists': False,
+                'isDailoqa': True,
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        is_new_user = (user.last_login is None)
+        first_name = user.username
+        if hasattr(user, 'profile') and user.profile:
+            first_name = user.profile.first_name or user.profile.full_name or user.username
+
+        return Response({
+            'code': 200,
+            'data': {
+                'exists': True,
+                'isDailoqa': True,
+                'isNewUser': is_new_user,
+                'email': user.email,
+                'firstName': first_name,
+                'role': user.role,
             }
         })
 
