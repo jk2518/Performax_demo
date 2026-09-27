@@ -23,7 +23,6 @@ Welcome to the **Manager Workspace**. This folder contains everything you need t
 - **Team Roster & KPIs:** `epms_frontend/src/pages/kpi/TeamKpiOverviewPage.tsx`
 - **Goal Management:** `epms_frontend/src/pages/kpi/GoalManagementPage.tsx`
 - **1-on-1 Sync Meetings:** `epms_frontend/src/pages/meetings/OneOnOneMeetingsPage.tsx`
-- **360 Reviews:** `epms_frontend/src/pages/feedback360/Feedback360PendingPage.tsx`
 
 ### 2. Backend Development:
 - **App Directory:** `backend/apps/manager/`

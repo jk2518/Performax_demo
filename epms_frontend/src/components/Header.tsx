@@ -11,7 +11,6 @@ interface PageInfo {
 const PAGE_MAP: Record<string, PageInfo> = {
   "/dashboard":            { title: "Executive Dashboard" },
   "/appraisal":            { section: "Performance Cycles", title: "Appraisal Assessments" },
-  "/appraisal/360":        { section: "Multi-Rater", title: "360° Peer Evaluations" },
   "/profile":              { title: "Employee Profile Hub" },
   "/notifications":        { title: "Notification Feed" },
   "/employees":            { section: "Org Governance", title: "Employee Directory" },

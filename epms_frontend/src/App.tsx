@@ -15,7 +15,6 @@ import {
   generalRoutes,
   kpiRoutes,
   continuousRoutes,
-  feedback360Routes,
 } from "./routes";
 import { ActiveCycleProvider } from "./context/ActiveCycleContext";
 import KpiCategoryManager from './pages/kpi/KpiCategoryManager';
@@ -73,11 +72,6 @@ const App = () => {
               <Route key={route.path} path={route.path} element={route.element} />
             ))}
 
-            {/* 360 Feedback — general (all authenticated users) */}
-            {feedback360Routes.filter(r => !r.adminOnly).map((route) => (
-              <Route key={route.path} path={route.path} element={route.element} />
-            ))}
-
             {/* Appraisal Workflow Routes */}
             {appraisalRoutes.map((route) => (
               <Route key={route.path} path={route.path} element={route.element} />
@@ -110,11 +104,6 @@ const App = () => {
 
             {/* HR/Admin Management Routes */}
             <Route element={<ProtectedRoute allowedRoles={["ADMIN", "HR"]} />}>
-              {/* 360 Feedback Admin */}
-              {feedback360Routes.filter(r => r.adminOnly).map((route) => (
-                <Route key={route.path} path={route.path} element={route.element} />
-              ))}
-
               {/* Shared HR + Admin routes (employees, departments, org, etc.) */}
               {adminRoutes.filter(r => !['/roles', '/permissions', '/permissions/matrix', '/permissions/assign', '/employees/:id/profile'].includes(r.path)).map((route) => (
                 <Route key={route.path} path={route.path} element={route.element} />

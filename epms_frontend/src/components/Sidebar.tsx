@@ -20,7 +20,6 @@ import {
   Calendar,
   Layers,
   X,
-  Repeat2,
   FileClock,
   GraduationCap,
 } from "lucide-react";
@@ -73,7 +72,6 @@ const Sidebar = ({ onClose }: SidebarProps) => {
   const location = useLocation();
   const [mgmtOpen, setMgmtOpen] = useState(false);
   const [perfOpen, setPerfOpen] = useState(false);
-  const [feedback360Open, setFeedback360Open] = useState(false);
 
   const filteredNav = NAV_ITEMS.filter((item) => {
     switch (item.label) {
@@ -177,85 +175,7 @@ const Sidebar = ({ onClose }: SidebarProps) => {
           </div>
         </div>
 
-        {/* 360 Feedback Accordion */}
-        <div>
-          <button
-            onClick={() => setFeedback360Open(!feedback360Open)}
-            className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-[13px] text-slate-600 hover:bg-slate-100/80 hover:text-slate-900 transition-colors group"
-          >
-            <span className="flex items-center gap-2.5 font-normal">
-              <Repeat2 size={16} className="text-slate-400 group-hover:text-slate-600" />
-              360° Multi-Rater
-            </span>
-            <ChevronDown
-              size={14}
-              className={`text-slate-400 transition-transform duration-200 ${
-                feedback360Open ? "rotate-180" : ""
-              }`}
-            />
-          </button>
 
-          {feedback360Open && (
-            <div className="ml-5 pl-2.5 mt-1 border-l border-slate-200/80 space-y-0.5">
-              <NavLink
-                to="/360-feedback/pending"
-                className={({ isActive }) =>
-                  `block px-2.5 py-1.5 rounded-lg text-[12.5px] transition-colors ${
-                    isActive
-                      ? "text-indigo-700 font-semibold bg-indigo-50/70"
-                      : "text-slate-500 hover:text-slate-900 hover:bg-slate-100/60"
-                  }`
-                }
-                onClick={handleNavClick}
-              >
-                Pending 360 Reviews
-              </NavLink>
-              <NavLink
-                to="/360-feedback/my-report"
-                className={({ isActive }) =>
-                  `block px-2.5 py-1.5 rounded-lg text-[12.5px] transition-colors ${
-                    isActive
-                      ? "text-indigo-700 font-semibold bg-indigo-50/70"
-                      : "text-slate-500 hover:text-slate-900 hover:bg-slate-100/60"
-                  }`
-                }
-                onClick={handleNavClick}
-              >
-                My 360 Feedback Report
-              </NavLink>
-              {(isHR || isAdmin || isManager) && (
-                <>
-                  <NavLink
-                    to="/360-feedback/admin"
-                    className={({ isActive }) =>
-                      `block px-2.5 py-1.5 rounded-lg text-[12.5px] transition-colors ${
-                        isActive
-                          ? "text-indigo-700 font-semibold bg-indigo-50/70"
-                          : "text-slate-500 hover:text-slate-900 hover:bg-slate-100/60"
-                      }`
-                    }
-                    onClick={handleNavClick}
-                  >
-                    360 Cycles & Matrix
-                  </NavLink>
-                  <NavLink
-                    to="/360-feedback/calibration"
-                    className={({ isActive }) =>
-                      `block px-2.5 py-1.5 rounded-lg text-[12.5px] transition-colors ${
-                        isActive
-                          ? "text-indigo-700 font-semibold bg-indigo-50/70"
-                          : "text-slate-500 hover:text-slate-900 hover:bg-slate-100/60"
-                      }`
-                    }
-                    onClick={handleNavClick}
-                  >
-                    Calibration Sessions
-                  </NavLink>
-                </>
-              )}
-            </div>
-          )}
-        </div>
 
         {/* Performance & KRAs Accordion */}
         <div>

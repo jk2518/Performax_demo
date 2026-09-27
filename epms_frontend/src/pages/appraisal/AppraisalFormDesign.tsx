@@ -327,7 +327,7 @@ const AppraisalFormDesign: React.FC = () => {
       }
       toast.success(isEditMode ? "Form updated!" : "Form saved!");
       if (isFeedback) {
-        navigate(`/360-feedback/admin?cycleId=${selectedCycleId}`);
+        navigate("/appraisal");
       } else {
         const cycle = cycles.find(
           (c) => Number(c.cycleId) === Number(selectedCycleId),
@@ -411,9 +411,7 @@ const AppraisalFormDesign: React.FC = () => {
           <button
             onClick={() => {
               if (isFeedback) {
-                navigate(
-                  `/360-feedback/admin${selectedCycleId ? `?cycleId=${selectedCycleId}` : ""}`,
-                );
+                navigate("/appraisal");
               } else {
                 const cycle = cycles.find(
                   (c) => Number(c.cycleId) === Number(selectedCycleId),
