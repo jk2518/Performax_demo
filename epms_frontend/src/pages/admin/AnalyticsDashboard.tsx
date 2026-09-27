@@ -3,7 +3,6 @@ import { toast } from 'react-toastify';
 import {
   useDownloadReportMutation,
   useGetAppraisalStatusReportQuery,
-  useGetFeedback360SummaryAnalyticsQuery,
   useGetGoalCompletionQuery,
   useGetIdpTrackingReportQuery,
   useGetKpiAchievementReportQuery,
@@ -23,7 +22,6 @@ import { QuickInsights, SelectCyclePrompt, SummaryCards } from '../../components
 import {
   AppraisalCompletionCard,
   DepartmentHeatmap,
-  Feedback360Card,
   GoalCompletionCard,
   KpiAchievementChart,
   PerformanceDistributionCard,
@@ -36,7 +34,6 @@ import {
   IdpPanel,
   PipPanel,
   PromotionReadinessPanel,
-  StrategicInsightCard,
   UnderPerformanceRankingTable,
 } from '../../components/analytics/RankingAndPip';
 import {
@@ -69,7 +66,6 @@ const AnalyticsDashboard = () => {
   const trendReportQuery = useGetOrganizationPerformanceTrendQuery(6, { skip: !hasCycle });
   const matrixReportQuery = useGetPerformancePotentialMatrixQuery(Number(selectedCycle), { skip: !hasCycle });
   const goalReportQuery = useGetGoalCompletionQuery(Number(selectedCycle), { skip: !hasCycle });
-  const feedback360ReportQuery = useGetFeedback360SummaryAnalyticsQuery(Number(selectedCycle), { skip: !hasCycle });
   const teamBreakdownQuery = useGetTeamPerformanceBreakdownQuery({ cycleId: Number(selectedCycle), departmentId }, { skip: !hasCycle });
 
   const [downloadReport] = useDownloadReportMutation();
@@ -105,7 +101,6 @@ const AnalyticsDashboard = () => {
           trendReportQuery.refetch(),
           matrixReportQuery.refetch(),
           goalReportQuery.refetch(),
-          feedback360ReportQuery.refetch(),
           teamBreakdownQuery.refetch(),
         );
       }
@@ -120,7 +115,6 @@ const AnalyticsDashboard = () => {
     appraisalStatusQuery,
     departmentReportQuery,
     distributionReportQuery,
-    feedback360ReportQuery,
     goalReportQuery,
     hasCycle,
     idpReportQuery,
@@ -148,8 +142,8 @@ const AnalyticsDashboard = () => {
     },
     { label: 'Avg Score', value: formatScore(distributionReportQuery.data?.data?.mean) },
     { label: 'Goal Done', value: formatPercent(goalReportQuery.data?.data?.completionRate) },
-    { label: '360 Response', value: formatPercent(feedback360ReportQuery.data?.data?.participationRate) },
-  ], [appraisalStatusQuery.data, distributionReportQuery.data, feedback360ReportQuery.data, goalReportQuery.data]);
+    { label: 'Evaluated', value: String(appraisalStatusQuery.data?.data?.completed ?? 0) },
+  ], [appraisalStatusQuery.data, distributionReportQuery.data, goalReportQuery.data]);
 
   const insights = useMemo(() => [
     `${summaryMetrics[0].value} appraisal completion for this cycle.`,
@@ -248,7 +242,6 @@ const AnalyticsDashboard = () => {
             })}
           />
           <GoalCompletionCard data={goalReportQuery.data?.data} />
-          <Feedback360Card data={feedback360ReportQuery.data?.data} />
           <PerformancePotentialMatrixCard data={matrixReportQuery.data?.data} />
 
           <PerformanceRankingTable

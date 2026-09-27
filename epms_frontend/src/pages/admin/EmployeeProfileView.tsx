@@ -27,6 +27,7 @@ import {
   ShieldCheck,
   UserX,
   RotateCcw,
+  X,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import { useGetEmployeeByIdQuery } from "../../features/employee/employeeapi";
@@ -79,7 +80,6 @@ const TABS = [
   "Skill Set",
   "Feedback",
   "Appraisal Data",
-  "Multi-Rater Selection",
 ] as const;
 
 type TabType = typeof TABS[number];
@@ -1066,7 +1066,7 @@ const EmployeeProfileView = () => {
           </div>
 
           {/* Breakdown Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-white p-4 rounded-xl border border-slate-200">
               <div className="text-xs text-slate-400 font-semibold">Self Assessment (1-10)</div>
               <div className="text-2xl font-bold text-slate-900 mt-2">8.5</div>
@@ -1075,24 +1075,19 @@ const EmployeeProfileView = () => {
             <div className="bg-white p-4 rounded-xl border border-slate-200">
               <div className="text-xs text-slate-400 font-semibold">Manager Review (1-10)</div>
               <div className="text-2xl font-bold text-slate-900 mt-2">9.0</div>
-              <div className="text-[11px] text-slate-400 mt-1">Weight: 40%</div>
-            </div>
-            <div className="bg-white p-4 rounded-xl border border-slate-200">
-              <div className="text-xs text-slate-400 font-semibold">360 Peer Feedback</div>
-              <div className="text-2xl font-bold text-slate-900 mt-2">8.8</div>
-              <div className="text-[11px] text-slate-400 mt-1">Weight: 20%</div>
+              <div className="text-[11px] text-slate-400 mt-1">Weight: 50%</div>
             </div>
             <div className="bg-white p-4 rounded-xl border border-slate-200">
               <div className="text-xs text-slate-400 font-semibold">KRA & KPI Actuals</div>
               <div className="text-2xl font-bold text-slate-900 mt-2">9.2</div>
-              <div className="text-[11px] text-slate-400 mt-1">Weight: 20%</div>
+              <div className="text-[11px] text-slate-400 mt-1">Weight: 30%</div>
             </div>
           </div>
         </div>
       )}
 
       {/* ========================================================================= */}
-      {/* TAB 7 & 8: KEY ACCOUNTABILITY & MULTI-RATER SELECTION */}
+      {/* TAB 7: KEY ACCOUNTABILITY */}
       {/* ========================================================================= */}
       {activeTab === "Key Accountability" && (
         <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs space-y-4">
@@ -1106,39 +1101,6 @@ const EmployeeProfileView = () => {
               <div key={i} className="flex items-start gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
                 <CheckCircle2 size={16} className="text-blue-600 shrink-0 mt-0.5" />
                 <span className="text-xs font-medium text-slate-700 leading-relaxed">{acc}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {activeTab === "Multi-Rater Selection" && (
-        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs space-y-4">
-          <h2 className="text-base font-bold text-slate-800">360 Multi-Rater Peer Reviewers</h2>
-          <p className="text-xs text-slate-500">Peers and cross-functional partners selected to submit 360 feedback.</p>
-          <div className="divide-y divide-slate-100 border border-slate-200 rounded-xl overflow-hidden">
-            {[
-              { name: "Kurt Weller", role: "Engineering Lead", status: "Submitted" },
-              { name: "Sarah Jenkins", role: "HR Business Partner", status: "Submitted" },
-              { name: "Marcus Tech", role: "Tech Lead / Manager", status: "In Progress" },
-            ].map((r, i) => (
-              <div key={i} className="p-3.5 flex items-center justify-between bg-white hover:bg-slate-50">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center font-bold text-xs text-slate-700">
-                    {r.name.charAt(0)}
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold text-slate-900">{r.name}</div>
-                    <div className="text-[11px] text-slate-400">{r.role}</div>
-                  </div>
-                </div>
-                <span
-                  className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
-                    r.status === "Submitted" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
-                  }`}
-                >
-                  {r.status}
-                </span>
               </div>
             ))}
           </div>

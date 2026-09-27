@@ -17,7 +17,6 @@ import type {
   PerformanceTrendPointDTO,
   PerformancePotentialMatrixDTO,
   GoalCompletionReportDTO,
-  Feedback360SummaryAnalyticsDTO,
   DepartmentBreakdownDTO,
 } from "../../types/report";
 
@@ -68,12 +67,6 @@ export const reportApi = api.injectEndpoints({
     getGoalCompletion: builder.query<ApiResponse<GoalCompletionReportDTO>, number>({
       query: (cycleId) => ({
         url: "/reports/goal-completion",
-        params: { cycleId },
-      }),
-    }),
-    getFeedback360SummaryAnalytics: builder.query<ApiResponse<Feedback360SummaryAnalyticsDTO>, number>({
-      query: (cycleId) => ({
-        url: "/reports/feedback-360-summary",
         params: { cycleId },
       }),
     }),
@@ -163,7 +156,6 @@ export const {
   useGetOrganizationPerformanceTrendQuery,
   useGetPerformancePotentialMatrixQuery,
   useGetGoalCompletionQuery,
-  useGetFeedback360SummaryAnalyticsQuery,
   useGetFeedbackParticipationReportQuery,
   useGetPipTrackingReportQuery,
   useGetIdpTrackingReportQuery,

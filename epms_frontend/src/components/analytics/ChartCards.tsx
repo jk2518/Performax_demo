@@ -19,14 +19,13 @@ import {
   YAxis,
   ZAxis,
 } from 'recharts';
-import { Download, FileSpreadsheet, FileText, Gauge, MessageSquare, ChevronDown, ChevronRight } from 'lucide-react';
+import { Download, FileSpreadsheet, FileText, Gauge, ChevronDown, ChevronRight } from 'lucide-react';
 import { DashboardCard, EmptyState, SkeletonBlock } from './DashboardPrimitives';
 import { chartPalette, DASHBOARD_COLORS, DASHBOARD_BORDER, dashboardStyles } from '../../styles/dashboardStyles';
 import { calculateCompletionRate, formatScore, getScoreTone, transformGoalData, type PieDatum } from '../../utils/reportUtils';
 import type {
   AppraisalStatusReportDTO,
   DepartmentAnalyticsDTO,
-  Feedback360SummaryAnalyticsDTO,
   GoalCompletionReportDTO,
   KpiAchievementReportDTO,
   PerformanceDistributionReportDTO,
@@ -295,23 +294,6 @@ export const GoalCompletionCard = memo(({ data }: { data?: GoalCompletionReportD
   );
 });
 
-export const Feedback360Card = memo(({ data }: { data?: Feedback360SummaryAnalyticsDTO }) => (
-  <DashboardCard title="Feedback 360 Analytics" className="lg:col-span-5" action={<MessageSquare size={15} color={DASHBOARD_COLORS.subtle} />}>
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10 }}>
-      {[
-        ['Participation', `${formatScore(data?.participationRate, 0)}%`],
-        ['Avg Response', `${formatScore(data?.avgResponseTimeDays)}d`],
-        ['Theme', data?.mostCommonFeedbackTheme || 'No feedback'],
-        ['Self Gap', `${formatScore(data?.selfPerceptionGap)} pts`],
-      ].map(([label, value]) => (
-        <div key={label} style={{ background: DASHBOARD_COLORS.surfaceAlt, border: DASHBOARD_BORDER, borderRadius: 8, padding: 10, minHeight: 68 }}>
-          <p style={{ fontSize: 11, color: DASHBOARD_COLORS.subtle, marginBottom: 4 }}>{label}</p>
-          <p style={{ fontSize: label === 'Theme' ? 13 : 18, fontWeight: 700, color: DASHBOARD_COLORS.ink, lineHeight: 1.25 }}>{value}</p>
-        </div>
-      ))}
-    </div>
-  </DashboardCard>
-));
 
 export const PerformancePotentialMatrixCard = memo(({ data }: { data?: PerformancePotentialMatrixDTO[] }) => (
   <DashboardCard title="Performance-Potential Matrix" className="lg:col-span-7">

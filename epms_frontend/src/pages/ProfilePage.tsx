@@ -28,7 +28,6 @@ const TABS = [
   "Skill Set",
   "Feedback",
   "Appraisal Data",
-  "Multi-Rater Selection",
 ] as const;
 
 type TabType = typeof TABS[number];

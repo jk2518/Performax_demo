@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { X, User, Users, ShieldCheck, RefreshCw, Coins, Check } from "lucide-react";
+import { X, User, ShieldCheck, RefreshCw, Coins, Check } from "lucide-react";
 import { toast } from "react-toastify";
 
 interface CreateAppraisalTemplateModalProps {
@@ -18,7 +18,6 @@ export const CreateAppraisalTemplateModal: React.FC<CreateAppraisalTemplateModal
 
   // Assessment stages toggles
   const [selfAppraisal, setSelfAppraisal] = useState(true);
-  const [multiRater, setMultiRater] = useState(false);
   const [managerReview, setManagerReview] = useState(true);
 
   // Post-appraisal processes toggles
@@ -50,7 +49,7 @@ export const CreateAppraisalTemplateModal: React.FC<CreateAppraisalTemplateModal
           description: description.trim(),
           stages: {
             self_appraisal: selfAppraisal,
-            multi_rater: multiRater,
+            multi_rater: false,
             manager_review: managerReview,
           },
           post_processes: {
@@ -174,32 +173,7 @@ export const CreateAppraisalTemplateModal: React.FC<CreateAppraisalTemplateModal
                   </div>
                 </div>
 
-                {/* Multi-rater Card */}
-                <div
-                  onClick={() => setMultiRater(!multiRater)}
-                  className={`flex items-center justify-between p-3.5 rounded-xl border transition-all cursor-pointer ${
-                    multiRater
-                      ? "bg-purple-50/40 border-purple-400 shadow-xs"
-                      : "bg-white border-slate-200 hover:border-slate-300"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center shrink-0">
-                      <Users size={20} />
-                    </div>
-                    <div>
-                      <div className="text-sm font-semibold text-slate-800">Multi-rater</div>
-                      <div className="text-xs text-slate-400">Feedback taken from other team members with whom...</div>
-                    </div>
-                  </div>
-                  <div
-                    className={`w-5 h-5 rounded-full flex items-center justify-center transition-all ${
-                      multiRater ? "bg-blue-600 text-white" : "border-2 border-slate-300 bg-white"
-                    }`}
-                  >
-                    {multiRater && <Check size={12} strokeWidth={3} />}
-                  </div>
-                </div>
+
 
                 {/* Manager Review Card */}
                 <div

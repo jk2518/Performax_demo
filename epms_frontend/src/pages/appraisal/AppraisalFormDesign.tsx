@@ -93,7 +93,6 @@ const AppraisalFormDesign: React.FC = () => {
   const defaultFormName = () => {
     if (initialType === "MANAGER_EVALUATION")
       return "Manager Evaluation Template";
-    if (initialType === "FEEDBACK") return "360° Feedback Template";
     return "Self Assessment Template";
   };
 
@@ -270,7 +269,7 @@ const AppraisalFormDesign: React.FC = () => {
       return;
     }
     if (isFeedback && !targetRelationship) {
-      toast.warning("Please select a Target Relationship for this 360° form.");
+      toast.warning("Please select a Target Relationship for this form.");
       return;
     }
     if (isAssigned) {
@@ -552,7 +551,6 @@ const AppraisalFormDesign: React.FC = () => {
                 >
                   <option value="SELF_ASSESSMENT">Self Assessment</option>
                   <option value="MANAGER_EVALUATION">Manager Evaluation</option>
-                  <option value="FEEDBACK">360° Feedback</option>
                 </select>
               </div>
               <div>

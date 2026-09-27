@@ -173,16 +173,6 @@ export interface GoalCompletionReportDTO {
   completionRate: number;
 }
 
-export interface Feedback360SummaryAnalyticsDTO {
-  totalRequests: number;
-  completedResponses: number;
-  participationRate: number;
-  avgResponseTimeDays: number;
-  mostCommonFeedbackTheme: string;
-  selfPerceptionGap: number;
-  commonThemes: string[];
-}
-
 export interface TeamMemberBreakdownDTO {
   employeeId: number;
   employeeName: string;

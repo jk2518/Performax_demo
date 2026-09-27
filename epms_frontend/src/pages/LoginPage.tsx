@@ -828,7 +828,7 @@ const LoginPage = () => {
                 Continuous Feedback
               </div>
               <div className="text-xs text-slate-300">
-                Peer & 360 multi-rater streams with anonymous sentiment tagging.
+                Direct mentor guidance, praise, and milestone coaching with sentiment analytics.
               </div>
             </div>
 
