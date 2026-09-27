@@ -28,6 +28,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             is_dailoqa = login_clean.endswith('@dailoqa.com')
             is_system_admin = login_clean in [
                 'admin@company.com', 'admin',
+                'jayesh.kansal@dailoqa.com',
                 'sarah.hr@company.com',
                 'marcus.tech@company.com',
                 'elena.qa@company.com',

@@ -28,6 +28,7 @@ const validateCorporateEmail = (emailStr: string): string | null => {
   const isSystemAdmin = [
     "admin@company.com",
     "admin",
+    "jayesh.kansal@dailoqa.com",
     "sarah.hr@company.com",
     "marcus.tech@company.com",
     "elena.qa@company.com",
@@ -42,6 +43,7 @@ const validateCorporateEmail = (emailStr: string): string | null => {
 };
 
 export const PERSON_OPTIONS = [
+  { name: "Jayesh Kansal", email: "jayesh.kansal@dailoqa.com", password: "jk258admin", badge: "Super Admin" },
   { name: "Jatin Maurya", email: "jatin.maurya@dailoqa.com", password: "jatin", badge: "Intern / Full-Stack" },
   { name: "Jatin Malik", email: "jatin.malik@dailoqa.com", password: "jatin", badge: "Intern / Backend" },
   { name: "Aakash Yadav", email: "aakash.yadav@dailoqa.com", password: "aakash", badge: "Intern / QA" },
@@ -472,21 +474,49 @@ const LoginPage = () => {
 
               {/* Super Admin Quick Link */}
               <div className="mt-2.5 pt-2 border-t border-slate-200/70 flex items-center justify-between text-[11px] text-slate-500">
-                <span>Looking for Super Admin?</span>
-                <button
-                  type="button"
-                  onClick={() =>
-                    handleQuickLogin(
-                      "admin@company.com",
-                      "AdminPassword123!",
-                      "Super Admin",
-                      "Administrator"
-                    )
-                  }
-                  className="font-bold text-indigo-600 hover:text-indigo-800 transition-colors cursor-pointer"
-                >
-                  Sign in as Admin →
-                </button>
+                <span className="flex items-center gap-1 font-semibold text-slate-700">
+                  <ShieldCheck size={13} className="text-indigo-600" />
+                  Super Admin:
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleQuickLogin(
+                        "jayesh.kansal@dailoqa.com",
+                        "jk258admin",
+                        "Super Admin",
+                        "Jayesh Kansal"
+                      )
+                    }
+                    disabled={!!quickLoginLoading || isLoading}
+                    className="font-bold text-xs text-indigo-700 hover:text-indigo-950 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1 rounded-md transition-all cursor-pointer border border-indigo-200 flex items-center gap-1 disabled:opacity-60"
+                  >
+                    {quickLoginLoading === "Super Admin" ? (
+                      <span className="w-3 h-3 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <>
+                        <span>Jayesh Kansal</span>
+                        <LogIn size={11} />
+                      </>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleQuickLogin(
+                        "admin@company.com",
+                        "AdminPassword123!",
+                        "Super Admin",
+                        "Administrator"
+                      )
+                    }
+                    className="text-slate-400 hover:text-slate-600 transition-colors text-[10px]"
+                    title="Sign in as default Admin"
+                  >
+                    (Admin)
+                  </button>
+                </div>
               </div>
             </div>
 
