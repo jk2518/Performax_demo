@@ -148,15 +148,20 @@ class SendOTPView(APIView):
         print(f" [OTP DISPATCH] Valid until: {expires_at.strftime('%Y-%m-%d %H:%M:%S')}")
         print(f"==========================================\n")
 
-        msg = "OTP sent to your email successfully." if email_res.get('success') else "OTP generated successfully. Check your email or dev console."
+        if not email_res.get('success'):
+            err_reason = email_res.get('error') or "Email service not configured. Please add SMTP credentials to backend/.env."
+            return Response({
+                'code': 500,
+                'message': f"Email delivery failed: {err_reason}",
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
         return Response({
             'code': 200,
-            'message': msg,
+            'message': 'Verification code sent to your email successfully.',
             'data': {
                 'email': email,
-                'otp': otp_code,  # Provided in dev response for seamless evaluation
                 'expiresInSeconds': 300,
-                'emailDispatched': email_res.get('success', False),
+                'emailDispatched': True,
             }
         })
 
@@ -180,27 +185,22 @@ class VerifyOTPView(APIView):
         email = serializer.validated_data['email']
         otp_code = serializer.validated_data['otp'].strip()
 
-        # Check universal test code or active database OTP
-        is_valid_otp = False
-        if otp_code == "123456":
-            is_valid_otp = True
-        else:
-            otp_record = EmailOTP.objects.filter(
-                email__iexact=email,
-                otp_code=otp_code,
-                is_used=False,
-                expires_at__gt=timezone.now()
-            ).first()
-            if otp_record:
-                otp_record.is_used = True
-                otp_record.save(update_fields=['is_used'])
-                is_valid_otp = True
+        # Check active database OTP
+        otp_record = EmailOTP.objects.filter(
+            email__iexact=email,
+            otp_code=otp_code,
+            is_used=False,
+            expires_at__gt=timezone.now()
+        ).first()
 
-        if not is_valid_otp:
+        if not otp_record:
             return Response(
-                {'code': 400, 'message': 'Invalid or expired OTP. Please request a new one.'},
+                {'code': 400, 'message': 'Invalid or expired OTP. Please check your email or request a new code.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+        otp_record.is_used = True
+        otp_record.save(update_fields=['is_used'])
 
         user = User.objects.filter(email__iexact=email, is_active=True).first()
         if not user:

@@ -17,13 +17,6 @@ import {
 } from "lucide-react";
 import { toast } from "react-toastify";
 
-const DEMO_ACCOUNTS = [
-  { role: "Dailoqa Intern (1st Time)", email: "tanvi.kad@dailoqa.com", pass: "", badge: "OTP Activation" },
-  { role: "Dailoqa Intern (Password)", email: "jatin.maurya@dailoqa.com", pass: "jatin", badge: "Password" },
-  { role: "Tech Manager", email: "marcus.tech@company.com", pass: "MarcusPassword123!", badge: "Evaluator" },
-  { role: "Super Admin", email: "admin@company.com", pass: "Admin@123", badge: "Full Access" },
-];
-
 const validateCorporateEmail = (emailStr: string): string | null => {
   const clean = emailStr.trim().toLowerCase();
   if (!clean) return "Please enter your email address.";
@@ -224,22 +217,6 @@ const LoginPage = () => {
     }
   };
 
-  const handleQuickPersona = (account: (typeof DEMO_ACCOUNTS)[0]) => {
-    setEmail(account.email);
-    setPassword(account.pass);
-    setNewPassword("");
-    setConfirmPassword("");
-    setError("");
-    setOtpSent(false);
-    setOtpCode("");
-    setUserStatus(null);
-    if (!account.pass) {
-      setLoginMode("otp");
-    } else {
-      setLoginMode("password");
-    }
-  };
-
   return (
     <div className="min-h-screen flex bg-slate-50 font-sans selection:bg-indigo-100 selection:text-indigo-900">
       {/* Left Form Panel */}
@@ -403,39 +380,16 @@ const LoginPage = () => {
                 {otpSent && (
                   <div className="animate-fade-in space-y-3.5">
                     {otpInfo && (
-                      <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-xl text-xs text-indigo-900 flex items-center justify-between gap-2">
-                        <span className="flex items-center gap-2 font-medium">
-                          <CheckCircle2 size={16} className="text-indigo-600 shrink-0" />
-                          <span>{otpInfo}</span>
-                        </span>
-                        {otpInfo.includes("Dev Passcode:") && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const match = otpInfo.match(/\d{6}/);
-                              if (match) setOtpCode(match[0]);
-                            }}
-                            className="text-[11px] font-bold text-indigo-700 bg-white hover:bg-indigo-100/60 px-2.5 py-1 rounded-lg border border-indigo-200 shadow-xs transition-colors shrink-0"
-                          >
-                            ⚡ Auto-Fill Code
-                          </button>
-                        )}
+                      <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-xl text-xs text-indigo-900 flex items-center gap-2">
+                        <CheckCircle2 size={16} className="text-indigo-600 shrink-0" />
+                        <span>{otpInfo}</span>
                       </div>
                     )}
 
                     <div>
-                      <div className="flex items-center justify-between mb-1.5">
-                        <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600">
-                          6-Digit Verification Passcode
-                        </label>
-                        <button
-                          type="button"
-                          onClick={() => setOtpCode("123456")}
-                          className="text-[10.5px] text-indigo-600 hover:underline font-semibold"
-                        >
-                          Use Universal (123456)
-                        </button>
-                      </div>
+                      <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">
+                        6-Digit Verification Code
+                      </label>
                       <div className="relative">
                         <KeyRound size={16} className="absolute left-3.5 top-3 text-slate-400" />
                         <input
@@ -536,40 +490,6 @@ const LoginPage = () => {
                 </button>
               </form>
             )}
-
-            {/* 1-Click Persona Quick Fill for Testing */}
-            <div className="mt-8 pt-6 border-t border-slate-200/70">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-[11px] font-bold tracking-wider uppercase text-slate-400">
-                  Instant Demo Persona Sign-In
-                </span>
-                <span className="text-[10.5px] font-medium text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">
-                  1-Click Select
-                </span>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                {DEMO_ACCOUNTS.map((acc) => (
-                  <button
-                    key={acc.role}
-                    type="button"
-                    onClick={() => handleQuickPersona(acc)}
-                    className="flex flex-col text-left p-2.5 rounded-xl border border-slate-200/80 bg-slate-50/60 hover:bg-indigo-50/70 hover:border-indigo-200 transition-all group"
-                  >
-                    <div className="flex items-center justify-between w-full">
-                      <span className="text-xs font-semibold text-slate-800 group-hover:text-indigo-700">
-                        {acc.role}
-                      </span>
-                      <span className="text-[9.5px] font-semibold text-slate-500 bg-white border border-slate-200 rounded px-1.5 py-0.2">
-                        {acc.badge}
-                      </span>
-                    </div>
-                    <span className="text-[11px] text-slate-400 group-hover:text-indigo-600 truncate mt-0.5">
-                      {acc.email}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
           </div>
         </div>
 
