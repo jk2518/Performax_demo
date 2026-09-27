@@ -93,3 +93,205 @@ class SuperAdminSystemRecordsViewTests(TestCase):
         response = SuperAdminSystemRecordsView.as_view()(request)
 
         self.assertEqual(response.status_code, 400)
+
+
+class PerformancePulseFeatureTests(TestCase):
+    def setUp(self):
+        self.factory = APIRequestFactory()
+
+        # Organization & Users
+        from apps.organization.models import Department
+        from apps.feedback.models import Feedback, FeedbackType, FeedbackStatus
+        from apps.goals.models import Goal, GoalStatus, KPI
+
+        self.dept_eng = Department.objects.create(name='Engineering', description='Engineering Dept')
+        self.dept_qa = Department.objects.create(name='Quality Assurance', description='QA Dept')
+
+        self.admin = User.objects.create_user(
+            email='admin@company.com',
+            username='admin-pulse',
+            password='Password123!',
+            role=UserRole.SUPER_ADMIN,
+        )
+
+        self.intern = User.objects.create_user(
+            email='intern@company.com',
+            username='intern-pulse',
+            password='Password123!',
+            role=UserRole.INTERN,
+        )
+
+        self.manager = User.objects.create_user(
+            email='manager@company.com',
+            username='manager-pulse',
+            password='Password123!',
+            role=UserRole.MANAGER,
+        )
+
+        self.intern_profile = EmployeeProfile.objects.create(
+            user=self.intern,
+            employee_code='PULSE-001',
+            first_name='Alex',
+            last_name='Pulse',
+            department=self.dept_eng,
+            manager=self.manager
+        )
+
+        self.manager_profile = EmployeeProfile.objects.create(
+            user=self.manager,
+            employee_code='PULSE-002',
+            first_name='Marcus',
+            last_name='Manager',
+            department=self.dept_eng
+        )
+
+        # Performance Cycle & Goal
+        self.cycle = PerformanceCycle.objects.create(
+            name='Q3 2026 Cycle',
+            start_date=date.today() - timedelta(days=60),
+            end_date=date.today() + timedelta(days=60),
+        )
+
+        self.goal = Goal.objects.create(
+            employee=self.intern_profile,
+            cycle=self.cycle,
+            title='Implement Core Performance Module',
+            description='Build out end-to-end features',
+            due_date=date.today() + timedelta(days=15),
+            status=GoalStatus.IN_PROGRESS,
+            completion_percentage=85.0
+        )
+
+        self.kpi = KPI.objects.create(
+            goal=self.goal,
+            name='Code Coverage',
+            target_value=90.0,
+            achieved_value=88.5,
+            unit='%'
+        )
+
+        # Feedbacks
+        self.fb1 = Feedback.objects.create(
+            sender=self.manager,
+            recipient=self.intern,
+            feedback_type=FeedbackType.PRAISE,
+            message='Outstanding architecture work on continuous feedback.',
+            status=FeedbackStatus.PUBLISHED,
+            goal=self.goal
+        )
+
+        self.fb2 = Feedback.objects.create(
+            sender=self.admin,
+            recipient=self.intern,
+            feedback_type=FeedbackType.CONSTRUCTIVE,
+            message='Ensure proper integration tests are maintained.',
+            status=FeedbackStatus.PUBLISHED
+        )
+
+    def test_pulse_endpoint_with_date_range_and_filters(self):
+        from apps.superadmin.performance_pulse import PerformancePulseView
+
+        request = self.factory.get('/performance-history/pulse', {
+            'startDate': (date.today() - timedelta(days=7)).isoformat(),
+            'endDate': (date.today() + timedelta(days=1)).isoformat(),
+            'departmentId': str(self.dept_eng.id),
+        })
+        force_authenticate(request, user=self.admin)
+        response = PerformancePulseView.as_view()(request)
+
+        self.assertEqual(response.status_code, 200)
+        items = response.data.get('data', [])
+        self.assertGreaterEqual(len(items), 2)
+        sentiments = {item['feedbackType'] for item in items}
+        self.assertIn('PRAISE', sentiments)
+        self.assertIn('IMPROVEMENT', sentiments)
+
+    def test_pulse_invalid_date_range_rejected(self):
+        from apps.superadmin.performance_pulse import PerformancePulseView
+
+        request = self.factory.get('/performance-history/pulse', {
+            'startDate': '2026-10-01',
+            'endDate': '2026-09-01',
+        })
+        force_authenticate(request, user=self.admin)
+        response = PerformancePulseView.as_view()(request)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('End date cannot precede start date', response.data.get('detail', ''))
+
+    def test_department_benchmarks(self):
+        from apps.superadmin.performance_pulse import PerformancePulseBenchmarksView
+
+        request = self.factory.get('/performance-history/department-benchmarks')
+        force_authenticate(request, user=self.admin)
+        response = PerformancePulseBenchmarksView.as_view()(request)
+
+        self.assertEqual(response.status_code, 200)
+        data = response.data.get('data', {})
+        self.assertIn('companyAverage', data)
+        self.assertIn('departments', data)
+
+        eng_bench = next((d for d in data['departments'] if d['departmentId'] == str(self.dept_eng.id)), None)
+        self.assertIsNotNone(eng_bench)
+        self.assertEqual(eng_bench['headcount'], 2)
+        self.assertGreaterEqual(eng_bench['totalActivities'], 2)
+        self.assertGreater(eng_bench['activitiesPerEmployee'], 0)
+
+        # Check edge case for department with zero headcount
+        qa_bench = next((d for d in data['departments'] if d['departmentId'] == str(self.dept_qa.id)), None)
+        self.assertIsNotNone(qa_bench)
+        self.assertEqual(qa_bench['headcount'], 0)
+        self.assertEqual(qa_bench['activitiesPerEmployee'], 0.0)
+
+    def test_goals_overlay_endpoint(self):
+        from apps.superadmin.performance_pulse import PerformancePulseGoalsOverlayView
+
+        request = self.factory.get('/performance-history/goals-overlay', {
+            'departmentId': str(self.dept_eng.id)
+        })
+        force_authenticate(request, user=self.admin)
+        response = PerformancePulseGoalsOverlayView.as_view()(request)
+
+        self.assertEqual(response.status_code, 200)
+        data = response.data.get('data', {})
+        self.assertEqual(data['summary']['totalGoals'], 1)
+        self.assertEqual(data['summary']['averageCompletionPercentage'], 85.0)
+        self.assertGreater(len(data['monthlyOverlay']), 0)
+        self.assertEqual(len(data['goals']), 1)
+        self.assertEqual(data['goals'][0]['kpis'][0]['name'], 'Code Coverage')
+
+    def test_export_unauthorized_for_intern(self):
+        from apps.superadmin.performance_pulse import PerformancePulseExportView
+
+        request = self.factory.get('/performance-history/export/', {'format': 'csv'})
+        force_authenticate(request, user=self.intern)
+        response = PerformancePulseExportView.as_view()(request)
+
+        self.assertEqual(response.status_code, 403)
+
+    def test_export_csv_authorized_superadmin(self):
+        from apps.superadmin.performance_pulse import PerformancePulseExportView
+
+        request = self.factory.get('/performance-history/export/', {'format': 'csv'})
+        force_authenticate(request, user=self.admin)
+        response = PerformancePulseExportView.as_view()(request)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'text/csv')
+        csv_content = response.content.decode('utf-8')
+        self.assertIn('PERFORMAX PERFORMANCE PULSE REPORT', csv_content)
+        self.assertIn('--- SUMMARY METRICS ---', csv_content)
+        self.assertIn('--- DEPARTMENT BENCHMARK COMPARISONS ---', csv_content)
+        self.assertIn('--- GOALS & KPIS STATUS ---', csv_content)
+        self.assertIn('--- PERFORMANCE ACTIVITY AUDIT LOG ---', csv_content)
+
+    def test_export_pdf_authorized_superadmin(self):
+        from apps.superadmin.performance_pulse import PerformancePulseExportView
+
+        request = self.factory.get('/performance-history/export/', {'format': 'pdf'})
+        force_authenticate(request, user=self.admin)
+        response = PerformancePulseExportView.as_view()(request)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/pdf')
+        self.assertTrue(response.content.startswith(b'%PDF-1.4'))

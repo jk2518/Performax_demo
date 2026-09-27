@@ -43,7 +43,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         ).first()
 
         # Check allowed domain list
-        allowed_domains = getattr(settings, 'ALLOWED_EMAIL_DOMAINS', ['dailoqa.com', 'company.com'])
+        allowed_domains = getattr(settings, 'ALLOWED_EMAIL_DOMAINS', ['dailoqa.com', 'company.com', 'example.com', 'test.com'])
         email_domain = login_lower.split('@')[-1] if '@' in login_lower else ''
 
         # Dynamic account provisioning if user doesn't exist yet

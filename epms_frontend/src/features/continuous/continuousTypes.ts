@@ -157,14 +157,15 @@ export interface MeetingCommentRequest {
 
 export interface PerformanceHistoryResponse {
   historyId: number;
-  employeeId: number;
+  id?: string;
+  employeeId: number | string;
   employeeName: string;
-  managerId: number;
+  managerId: number | string;
   managerName: string;
-  performerId: number;
+  performerId: number | string;
   performerName: string;
   sourceType: 'FEEDBACK' | 'MEETING';
-  sourceId: number;
+  sourceId: number | string;
   title: string;
   description: string;
   feedbackType?: FeedbackType;
@@ -176,4 +177,81 @@ export interface PerformanceHistoryResponse {
 export interface ContinuousStatsResponse {
   totalPublished: number;
   totalDraft: number;
+}
+
+export interface DepartmentBenchmarkItem {
+  departmentId: string;
+  departmentName: string;
+  headcount: number;
+  totalActivities: number;
+  activitiesPerEmployee: number;
+  sentimentDistribution: {
+    praise: number;
+    improvement: number;
+    warning: number;
+    praisePercentage: number;
+    improvementPercentage: number;
+    warningPercentage: number;
+  };
+  goals: {
+    total: number;
+    completed: number;
+    completionRate: number;
+    averageCompletionPercentage: number;
+  };
+}
+
+export interface DepartmentBenchmarksResponse {
+  companyAverage: {
+    totalHeadcount: number;
+    totalActivities: number;
+    activitiesPerEmployee: number;
+    totalGoals: number;
+    completedGoals: number;
+    averageGoalCompletionPercentage: number;
+    goalCompletionRate: number;
+  };
+  departments: DepartmentBenchmarkItem[];
+}
+
+export interface GoalKpiItem {
+  id: string;
+  name: string;
+  targetValue: number;
+  achievedValue: number;
+  unit: string;
+}
+
+export interface GoalOverlayItem {
+  id: string;
+  title: string;
+  employeeName: string;
+  departmentName: string;
+  dueDate: string;
+  status: string;
+  completionPercentage: number;
+  priority: string;
+  kpis: GoalKpiItem[];
+}
+
+export interface MonthlyGoalOverlayItem {
+  name: string;
+  year: number;
+  month: number;
+  averageProgress: number;
+  totalGoals: number;
+  completedGoals: number;
+}
+
+export interface GoalsPulseOverlayResponse {
+  summary: {
+    totalGoals: number;
+    completedGoals: number;
+    inProgressGoals: number;
+    notStartedGoals: number;
+    averageCompletionPercentage: number;
+    completionRate: number;
+  };
+  monthlyOverlay: MonthlyGoalOverlayItem[];
+  goals: GoalOverlayItem[];
 }

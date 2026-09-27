@@ -13,6 +13,8 @@ import type {
   FeedbackTagRequest,
   PerformanceHistoryResponse,
   ContinuousStatsResponse,
+  DepartmentBenchmarksResponse,
+  GoalsPulseOverlayResponse,
 } from "./continuousTypes";
 import type { PagedResponse } from "../employee/employeeTypes";
 
@@ -279,17 +281,19 @@ export const continuousApi = api.injectEndpoints({
       transformResponse: (response: ApiResponse<PagedResponse<PerformanceHistoryResponse>>) => response.data,
       providesTags: ["PerformanceHistory" as any],
     }),
-    getAllPerformanceHistory: builder.query<PagedResponse<PerformanceHistoryResponse>, { sourceType?: string; departmentId?: number; page: number; size: number }>({
-      query: ({ sourceType, departmentId, page, size }) => {
+    getAllPerformanceHistory: builder.query<PagedResponse<PerformanceHistoryResponse>, { sourceType?: string; departmentId?: number | string; startDate?: string; endDate?: string; page: number; size: number }>({
+      query: ({ sourceType, departmentId, startDate, endDate, page, size }) => {
         let url = `/performance-history/all?page=${page}&size=${size}`;
         if (sourceType && sourceType !== 'ALL') url += `&sourceType=${sourceType}`;
         if (departmentId) url += `&departmentId=${departmentId}`;
+        if (startDate) url += `&startDate=${startDate}`;
+        if (endDate) url += `&endDate=${endDate}`;
         return url;
       },
       transformResponse: (response: ApiResponse<PagedResponse<PerformanceHistoryResponse>>) => response.data,
       providesTags: ["PerformanceHistory" as any],
     }),
-    getPerformanceHistoryAnalytics: builder.query<PerformanceHistoryResponse[], number | undefined>({
+    getPerformanceHistoryAnalytics: builder.query<PerformanceHistoryResponse[], number | string | undefined>({
       query: (departmentId) => {
         let url = "/performance-history/all/raw";
         if (departmentId) url += `?departmentId=${departmentId}`;
@@ -298,31 +302,67 @@ export const continuousApi = api.injectEndpoints({
       transformResponse: (response: ApiResponse<PerformanceHistoryResponse[]>) => response.data,
       providesTags: ["PerformanceHistory" as any],
     }),
-    getPerformancePulse: builder.query<PerformanceHistoryResponse[], { departmentId?: number; employeeId?: number; onlyByManager?: boolean }>({
-      query: ({ departmentId, employeeId, onlyByManager }) => {
+    getPerformancePulse: builder.query<PerformanceHistoryResponse[], { departmentId?: number | string; employeeId?: number | string; onlyByManager?: boolean; startDate?: string; endDate?: string }>({
+      query: ({ departmentId, employeeId, onlyByManager, startDate, endDate }) => {
         let url = "/performance-history/pulse";
         const params = new URLSearchParams();
         if (departmentId) params.append("departmentId", departmentId.toString());
         if (employeeId) params.append("employeeId", employeeId.toString());
         if (onlyByManager !== undefined) params.append("onlyByManager", onlyByManager.toString());
+        if (startDate) params.append("startDate", startDate);
+        if (endDate) params.append("endDate", endDate);
         const queryStr = params.toString();
         return queryStr ? `${url}?${queryStr}` : url;
       },
       transformResponse: (response: ApiResponse<PerformanceHistoryResponse[]>) => response.data,
       providesTags: ["PerformanceHistory" as any],
     }),
-    getMeetingPulse: builder.query<any, { departmentId?: number; employeeId?: number; onlyByManager?: boolean }>({
-      query: ({ departmentId, employeeId, onlyByManager }) => {
+    getMeetingPulse: builder.query<any, { departmentId?: number | string; employeeId?: number | string; onlyByManager?: boolean; startDate?: string; endDate?: string }>({
+      query: ({ departmentId, employeeId, onlyByManager, startDate, endDate }) => {
         let url = "/performance-history/meeting-pulse";
         const params = new URLSearchParams();
         if (departmentId) params.append("departmentId", departmentId.toString());
         if (employeeId) params.append("employeeId", employeeId.toString());
         if (onlyByManager !== undefined) params.append("onlyByManager", onlyByManager.toString());
+        if (startDate) params.append("startDate", startDate);
+        if (endDate) params.append("endDate", endDate);
         const queryStr = params.toString();
         return queryStr ? `${url}?${queryStr}` : url;
       },
       transformResponse: (response: ApiResponse<any>) => response.data,
       providesTags: ["PerformanceHistory" as any, "OneOnOneMeeting" as any],
+    }),
+    getDepartmentBenchmarks: builder.query<DepartmentBenchmarksResponse, { startDate?: string; endDate?: string } | void>({
+      query: (args) => {
+        let url = "/performance-history/department-benchmarks";
+        if (args) {
+          const params = new URLSearchParams();
+          if (args.startDate) params.append("startDate", args.startDate);
+          if (args.endDate) params.append("endDate", args.endDate);
+          const q = params.toString();
+          if (q) url += `?${q}`;
+        }
+        return url;
+      },
+      transformResponse: (response: ApiResponse<DepartmentBenchmarksResponse>) => response.data,
+      providesTags: ["PerformanceHistory" as any],
+    }),
+    getGoalsPulseOverlay: builder.query<GoalsPulseOverlayResponse, { departmentId?: number | string; employeeId?: number | string; startDate?: string; endDate?: string } | void>({
+      query: (args) => {
+        let url = "/performance-history/goals-overlay";
+        if (args) {
+          const params = new URLSearchParams();
+          if (args.departmentId) params.append("departmentId", args.departmentId.toString());
+          if (args.employeeId) params.append("employeeId", args.employeeId.toString());
+          if (args.startDate) params.append("startDate", args.startDate);
+          if (args.endDate) params.append("endDate", args.endDate);
+          const q = params.toString();
+          if (q) url += `?${q}`;
+        }
+        return url;
+      },
+      transformResponse: (response: ApiResponse<GoalsPulseOverlayResponse>) => response.data,
+      providesTags: ["PerformanceHistory" as any],
     }),
     getEmployeePerformanceHistoryAnalytics: builder.query<PerformanceHistoryResponse[], number>({
       query: (employeeId) => `/performance-history/employee/${employeeId}/raw`,
@@ -381,6 +421,8 @@ export const {
   useGetAllPerformanceHistoryQuery,
   useGetPerformancePulseQuery,
   useGetMeetingPulseQuery,
+  useGetDepartmentBenchmarksQuery,
+  useGetGoalsPulseOverlayQuery,
   useGetPerformanceHistoryAnalyticsQuery,
   useGetEmployeePerformanceHistoryAnalyticsQuery,
   usePublishFeedbackMutation,
