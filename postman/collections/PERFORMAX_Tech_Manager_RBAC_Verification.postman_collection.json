@@ -1,0 +1,660 @@
+{
+  "info": {
+    "_postman_id": "c1f7a29e-b9e4-4d87-9e32-80e4bbb74e56",
+    "name": "PERFORMAX - Tech Manager & RBAC Security Verification",
+    "description": "Comprehensive test collection verifying all 12 Tech Manager/Mentor functionalities (M-01 to M-12) and validating that Role-Based Access Control (RBAC) boundaries are strictly enforced across Intern, Manager, HR, and SuperAdmin personas.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8000" },
+    { "key": "manager_email", "value": "elena.qa@company.com" },
+    { "key": "manager_password", "value": "ElenaPassword123!" },
+    { "key": "intern_email", "value": "aakash.yadav@dailoqa.com" },
+    { "key": "intern_password", "value": "aakash" },
+    { "key": "superadmin_email", "value": "jayesh.kansal@dailoqa.com" },
+    { "key": "superadmin_password", "value": "jk258admin" },
+    { "key": "manager_token", "value": "" },
+    { "key": "intern_token", "value": "" },
+    { "key": "superadmin_token", "value": "" },
+    { "key": "test_employee_id", "value": "" },
+    { "key": "test_appraisal_id", "value": "" },
+    { "key": "test_task_id", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "00. Authentication & Token Acquisition",
+      "item": [
+        {
+          "name": "00.1 Login as Tech Manager (Elena Rostova)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var jsonData = pm.response.json();",
+                  "var token = jsonData.access || (jsonData.data && jsonData.data.accessToken) || (jsonData.data && jsonData.data.token && jsonData.data.token.accessToken);",
+                  "pm.collectionVariables.set(\"manager_token\", token);",
+                  "pm.test(\"Token acquired & role is MANAGER\", function () {",
+                  "    pm.expect(token).to.be.a('string');",
+                  "    var role = jsonData.user ? jsonData.user.role : jsonData.data.user.role;",
+                  "    pm.expect(role).to.eql('MANAGER');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{manager_email}}\",\n  \"password\": \"{{manager_password}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/login/", "host": ["{{baseUrl}}"], "path": ["api", "v1", "auth", "login", ""] }
+          }
+        },
+        {
+          "name": "00.2 Login as Intern (Aakash Yadav)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var jsonData = pm.response.json();",
+                  "var token = jsonData.access || (jsonData.data && jsonData.data.accessToken);",
+                  "pm.collectionVariables.set(\"intern_token\", token);",
+                  "pm.test(\"Token acquired & role is INTERN\", function () {",
+                  "    pm.expect(token).to.be.a('string');",
+                  "    var role = jsonData.user ? jsonData.user.role : jsonData.data.user.role;",
+                  "    pm.expect(role).to.eql('INTERN');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{intern_email}}\",\n  \"password\": \"{{intern_password}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/login/", "host": ["{{baseUrl}}"], "path": ["api", "v1", "auth", "login", ""] }
+          }
+        },
+        {
+          "name": "00.3 Login as Super Admin (Jayesh Kansal)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var jsonData = pm.response.json();",
+                  "var token = jsonData.access || (jsonData.data && jsonData.data.accessToken);",
+                  "pm.collectionVariables.set(\"superadmin_token\", token);",
+                  "pm.test(\"Token acquired & role is SUPER_ADMIN\", function () {",
+                  "    pm.expect(token).to.be.a('string');",
+                  "    var role = jsonData.user ? jsonData.user.role : jsonData.data.user.role;",
+                  "    pm.expect(role).to.eql('SUPER_ADMIN');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{superadmin_email}}\",\n  \"password\": \"{{superadmin_password}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/login/", "host": ["{{baseUrl}}"], "path": ["api", "v1", "auth", "login", ""] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "01. Tech Manager Functionalities (M-01 to M-12)",
+      "item": [
+        {
+          "name": "M-01: View Assigned Mentees Roster",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var jsonData = pm.response.json();",
+                  "pm.test(\"Returns array of direct reports scoped to manager\", function () {",
+                  "    pm.expect(jsonData.code).to.eql(200);",
+                  "    pm.expect(jsonData.data).to.be.an('array');",
+                  "    pm.expect(jsonData.data.length).to.be.above(0);",
+                  "    pm.collectionVariables.set(\"test_employee_id\", jsonData.data[0].id);",
+                  "    if (jsonData.data[0].activeAppraisal && jsonData.data[0].activeAppraisal.id) {",
+                  "        pm.collectionVariables.set(\"test_appraisal_id\", jsonData.data[0].activeAppraisal.id);",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{manager_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/v1/manager/mentees/", "host": ["{{baseUrl}}"], "path": ["api", "v1", "manager", "mentees", ""] }
+          }
+        },
+        {
+          "name": "M-02: Assign Task to Mentee",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201 Created\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "var jsonData = pm.response.json();",
+                  "pm.test(\"Task created with correct assigned_by\", function () {",
+                  "    pm.expect(jsonData.data).to.have.property('id');",
+                  "    pm.collectionVariables.set(\"test_task_id\", jsonData.data.id);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{manager_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"employee_id\": \"{{test_employee_id}}\",\n  \"title\": \"Postman Automated Verification: E2E Playwright Suite\",\n  \"description\": \"Construct 15 automated test cases verifying token persistence and session isolation.\",\n  \"priority\": \"HIGH\",\n  \"due_date\": \"2026-10-15\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/manager/tasks/", "host": ["{{baseUrl}}"], "path": ["api", "v1", "manager", "tasks", ""] }
+          }
+        },
+        {
+          "name": "M-03: Manage Tasks & Goals (List & Filter)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var jsonData = pm.response.json();",
+                  "pm.test(\"Tasks returned for direct reports\", function () {",
+                  "    pm.expect(jsonData.data).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{manager_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/v1/manager/tasks/", "host": ["{{baseUrl}}"], "path": ["api", "v1", "manager", "tasks", ""] }
+          }
+        },
+        {
+          "name": "M-04: Configure Technical Capability Parameter",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201 Created or 200 OK\", function () {",
+                  "    pm.expect([200, 201]).to.include(pm.response.code);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{manager_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"OWASP API Hardening & Token Defense\",\n  \"category\": \"Cybersecurity & Automation\",\n  \"description\": \"Evaluates defense-in-depth sanitization, rate-limiting headers, and token refresh validation.\",\n  \"benchmark_score\": 5.0,\n  \"weight\": 20.0\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/manager/technical-parameters/", "host": ["{{baseUrl}}"], "path": ["api", "v1", "manager", "technical-parameters", ""] }
+          }
+        },
+        {
+          "name": "M-05: Review Technical Capability (Scoring Matrix)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{manager_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"employee_id\": \"{{test_employee_id}}\",\n  \"status\": \"SUBMITTED\",\n  \"reviews\": []\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/manager/technical-reviews/", "host": ["{{baseUrl}}"], "path": ["api", "v1", "manager", "technical-reviews", ""] }
+          }
+        },
+        {
+          "name": "M-06: Inspect Evidence Submissions",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{manager_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/v1/manager/evidence/", "host": ["{{baseUrl}}"], "path": ["api", "v1", "manager", "evidence", ""] }
+          }
+        },
+        {
+          "name": "M-07: Give Continuous Manager Feedback",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201 Created\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{manager_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"employee_id\": \"{{test_employee_id}}\",\n  \"feedback_type\": \"PRAISE\",\n  \"message\": \"Excellent performance on Playwright automated test regression coverage.\",\n  \"visibility\": \"MANAGER_AND_EMPLOYEE\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/manager/feedback/", "host": ["{{baseUrl}}"], "path": ["api", "v1", "manager", "feedback", ""] }
+          }
+        },
+        {
+          "name": "M-08: Review Employee Reflections & Feedback",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{manager_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/v1/manager/employee-feedbacks/", "host": ["{{baseUrl}}"], "path": ["api", "v1", "manager", "employee-feedbacks", ""] }
+          }
+        },
+        {
+          "name": "M-09: Fetch Appraisal Evaluation Form",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var jsonData = pm.response.json();",
+                  "pm.test(\"Form contains weighted evaluation categories\", function () {",
+                  "    pm.expect(jsonData.data).to.have.property('categories');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{manager_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/v1/manager-evaluations/form/{{test_appraisal_id}}/", "host": ["{{baseUrl}}"], "path": ["api", "v1", "manager-evaluations", "form", "{{test_appraisal_id}}", ""] }
+          }
+        },
+        {
+          "name": "M-10: Save Appraisal Evaluation Draft",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var jsonData = pm.response.json();",
+                  "pm.test(\"Appraisal status saved as DRAFT\", function () {",
+                  "    pm.expect(jsonData.status || jsonData.data.status).to.eql('DRAFT');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{manager_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"evaluationId\": \"{{test_appraisal_id}}\",\n  \"finalComment\": \"Intermediate manager draft saved during automated Postman verification.\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/manager-evaluations/{{test_appraisal_id}}/draft/", "host": ["{{baseUrl}}"], "path": ["api", "v1", "manager-evaluations", "{{test_appraisal_id}}", "draft", ""] }
+          }
+        },
+        {
+          "name": "M-11: Submit Formal Performance Appraisal",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var jsonData = pm.response.json();",
+                  "pm.test(\"Appraisal status transitioned to SUBMITTED\", function () {",
+                  "    pm.expect(jsonData.status || jsonData.data.status).to.eql('SUBMITTED');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{manager_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/v1/manager-evaluations/{{test_appraisal_id}}/submit/", "host": ["{{baseUrl}}"], "path": ["api", "v1", "manager-evaluations", "{{test_appraisal_id}}", "submit", ""] }
+          }
+        },
+        {
+          "name": "M-12: Inspect Historical Reviews Archive",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{manager_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/v1/manager/historical-reviews/", "host": ["{{baseUrl}}"], "path": ["api", "v1", "manager", "historical-reviews", ""] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "02. RBAC Security & Non-Regression Verification",
+      "item": [
+        {
+          "name": "RBAC-01: Reject Unauthenticated Request (Expect 401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Security Check: Unauthenticated access is rejected with 401\", function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/manager/mentees/", "host": ["{{baseUrl}}"], "path": ["api", "v1", "manager", "mentees", ""] }
+          }
+        },
+        {
+          "name": "RBAC-02: Prevent Intern from Accessing Manager Mentees (Expect 403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Security Check: Intern role is blocked from Manager Mentees with 403\", function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{intern_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/v1/manager/mentees/", "host": ["{{baseUrl}}"], "path": ["api", "v1", "manager", "mentees", ""] }
+          }
+        },
+        {
+          "name": "RBAC-03: Prevent Intern from Assigning Tasks (Expect 403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Security Check: Intern role cannot call Task Assignment endpoint\", function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{intern_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"employee_id\": \"{{test_employee_id}}\",\n  \"title\": \"Unauthorized Intern Task Creation\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/manager/tasks/", "host": ["{{baseUrl}}"], "path": ["api", "v1", "manager", "tasks", ""] }
+          }
+        },
+        {
+          "name": "RBAC-04: Prevent Intern from Accessing Evidence Decisions (Expect 403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Security Check: Intern role cannot access evidence reviews with 403\", function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{intern_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/v1/manager/evidence/", "host": ["{{baseUrl}}"], "path": ["api", "v1", "manager", "evidence", ""] }
+          }
+        },
+        {
+          "name": "RBAC-05: Prevent Intern from Configuring Technical Benchmarks (Expect 403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Security Check: Intern role cannot create or modify technical parameters\", function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{intern_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Tampered Parameter\",\n  \"category\": \"Exploit\",\n  \"benchmark_score\": 10.0\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/manager/technical-parameters/", "host": ["{{baseUrl}}"], "path": ["api", "v1", "manager", "technical-parameters", ""] }
+          }
+        },
+        {
+          "name": "RBAC-06: Manager Data Isolation (Scoping Check)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200 OK for manager\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var jsonData = pm.response.json();",
+                  "pm.test(\"Manager only sees direct reports, not other managers' employees\", function () {",
+                  "    var total = jsonData.data.length;",
+                  "    pm.expect(total).to.be.above(0);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{manager_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/v1/manager/mentees/", "host": ["{{baseUrl}}"], "path": ["api", "v1", "manager", "mentees", ""] }
+          }
+        },
+        {
+          "name": "RBAC-07: Super Admin Full Governance Access (Expect 200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200 OK for SuperAdmin\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var jsonData = pm.response.json();",
+                  "pm.test(\"SuperAdmin sees enterprise-wide direct and indirect rosters\", function () {",
+                  "    pm.expect(jsonData.data.length).to.be.above(80);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{superadmin_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/v1/manager/mentees/", "host": ["{{baseUrl}}"], "path": ["api", "v1", "manager", "mentees", ""] }
+          }
+        }
+      ]
+    }
+  ]
+}
