@@ -76,7 +76,8 @@ export const useAuth = () => {
     isAdmin,
     isManager: isAdmin || hasRole("MANAGER"),
     isHR: isAdmin || hasRole("HR"),
-    isEmployee: isAdmin || hasRole("EMPLOYEE"),
+    isEmployee: isAdmin || hasRole("EMPLOYEE") || hasRole("INTERN"),
+    isIntern: hasRole("INTERN") || (user ? (!isAdmin && !hasRole("MANAGER") && !hasRole("HR")) : false),
     // ABAC Helpers - Admin has top seniority and passes all rank checks
     isSenior: isAdmin ? true : (user ? user.levelRank <= 4 : false),
     isJunior: isAdmin ? false : (user ? user.levelRank >= 7 : false),
