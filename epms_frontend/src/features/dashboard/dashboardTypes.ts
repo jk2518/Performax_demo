@@ -133,12 +133,67 @@ export interface InternAppraisalItem {
   cycleName: string;
   appraisalType: string;
   status: string;
+  statusDisplay?: string;
   overallScore: number | null;
   selfScore: number | null;
   managerScore: number | null;
   reviewerComments: string | null;
   finalComments: string | null;
   published: boolean;
+  isUnderReview?: boolean;
+}
+
+export interface InternEvidenceItem {
+  id: string;
+  goalId: string | null;
+  goalTitle: string;
+  title: string;
+  description: string;
+  externalUrl: string;
+  reviewStatus: 'PENDING' | 'APPROVED' | 'REJECTED' | 'REVISION_REQUESTED';
+  reviewStatusDisplay: string;
+  reviewNotes: string;
+  reviewedByName: string | null;
+  reviewedAt: string | null;
+  createdAt: string;
+}
+
+export interface InternTechnicalReviewItem {
+  parameterId: string;
+  name: string;
+  category: string;
+  description: string;
+  benchmarkScore: number;
+  weight: number;
+  review: {
+    id: string | null;
+    status: string;
+    score: number | null;
+    mentorAssessment: string;
+    evidenceUrl: string;
+    reviewerName: string | null;
+    updatedAt: string | null;
+  };
+}
+
+export interface InternFeedbackComment {
+  id: string;
+  authorName: string;
+  comment: string;
+  createdAt: string;
+}
+
+export interface InternFeedbackItem {
+  id: string;
+  senderName: string;
+  recipientName: string;
+  feedbackType: string;
+  message: string;
+  visibility: string;
+  isFromMentor: boolean;
+  goalTitle: string | null;
+  createdAt: string;
+  comments: InternFeedbackComment[];
 }
 
 export interface ManagerDashboardResponse {

@@ -8,12 +8,19 @@ import {
   Trophy, Target, Clock, ClipboardList, MessageSquare, AlertTriangle,
   TrendingUp, FileText, CheckCircle2, Award, User, ExternalLink,
   ShieldCheck, ArrowRight, Sparkles, FolderGit2, Calendar,
-  AlertCircle, RefreshCw, Briefcase, Mail, Hash, UserCheck
+  AlertCircle, RefreshCw, Briefcase, Mail, Hash, UserCheck,
+  Send, Sliders, Check, Layers, Code, MessageCircle
 } from 'lucide-react';
 import {
   useGetEmployeeDashboardQuery,
   useGetInternScorecardQuery,
   useGetInternGoalsQuery,
+  useUpdateInternGoalProgressMutation,
+  useGetInternEvidenceQuery,
+  useSubmitInternEvidenceMutation,
+  useGetInternTechnicalReviewsQuery,
+  useGetInternFeedbackQuery,
+  useAddInternFeedbackCommentMutation,
   useGetInternAppraisalsQuery
 } from '../features/dashboard/dashboardApi';
 import { useDownloadReportMutation } from '../features/report/reportApi';
@@ -39,20 +46,53 @@ const EmployeeDashboard: React.FC = () => {
   const {
     data: scorecard,
     isLoading: isScorecardLoading,
+    refetch: refetchScorecard,
   } = useGetInternScorecardQuery();
 
   const {
     data: goals = [],
     isLoading: isGoalsLoading,
+    refetch: refetchGoals,
   } = useGetInternGoalsQuery();
 
   const {
     data: appraisals = [],
     isLoading: isAppraisalsLoading,
+    refetch: refetchAppraisals,
   } = useGetInternAppraisalsQuery();
 
+  const {
+    data: evidenceList = [],
+    isLoading: isEvidenceLoading,
+    refetch: refetchEvidence,
+  } = useGetInternEvidenceQuery();
+
+  const {
+    data: technicalReviews = [],
+    isLoading: isTechLoading,
+    refetch: refetchTech,
+  } = useGetInternTechnicalReviewsQuery();
+
+  const {
+    data: feedbackList = [],
+    isLoading: isFeedbackLoading,
+    refetch: refetchFeedback,
+  } = useGetInternFeedbackQuery();
+
+  const [updateGoalProgress, { isLoading: isUpdatingGoal }] = useUpdateInternGoalProgressMutation();
+  const [submitEvidence, { isLoading: isSubmittingEvidence }] = useSubmitInternEvidenceMutation();
+  const [addFeedbackComment, { isLoading: isSubmittingComment }] = useAddInternFeedbackCommentMutation();
   const [downloadReport] = useDownloadReportMutation();
+
   const [activeTab, setActiveTab] = useState<DashboardTab>('overview');
+  const [goalSliderValues, setGoalSliderValues] = useState<Record<string, number>>({});
+  const [evidenceForm, setEvidenceForm] = useState({
+    goalId: '',
+    title: '',
+    externalUrl: '',
+    description: '',
+  });
+  const [replyComments, setReplyComments] = useState<Record<string, string>>({});
 
   const handleDownload = async (format: 'pdf' | 'excel') => {
     if (!user?.id) return;
@@ -65,6 +105,52 @@ const EmployeeDashboard: React.FC = () => {
       toast.success(`Downloading performance trend as ${format.toUpperCase()}...`);
     } catch {
       toast.error('Failed to download performance trend.');
+    }
+  };
+
+  const handleGoalSliderChange = (goalId: string, val: number) => {
+    setGoalSliderValues(prev => ({ ...prev, [goalId]: val }));
+  };
+
+  const handleSaveGoalProgress = async (goalId: string, currentVal: number) => {
+    const progress = goalSliderValues[goalId] ?? currentVal;
+    try {
+      await updateGoalProgress({ goalId, progress }).unwrap();
+      toast.success(`Milestone progress updated to ${progress}%!`);
+      refetchGoals();
+      refetchScorecard();
+    } catch {
+      toast.error('Failed to update milestone progress.');
+    }
+  };
+
+  const handleSubmitEvidence = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!evidenceForm.goalId || !evidenceForm.title) {
+      toast.error('Please select an assigned goal and enter a title.');
+      return;
+    }
+    try {
+      await submitEvidence(evidenceForm).unwrap();
+      toast.success('Evidence submitted successfully for mentor review!');
+      setEvidenceForm({ goalId: '', title: '', externalUrl: '', description: '' });
+      refetchEvidence();
+      refetchScorecard();
+    } catch {
+      toast.error('Failed to submit evidence.');
+    }
+  };
+
+  const handleAddReplyComment = async (feedbackId: string) => {
+    const comment = replyComments[feedbackId]?.trim();
+    if (!comment) return;
+    try {
+      await addFeedbackComment({ feedbackId, comment }).unwrap();
+      toast.success('Reply comment sent to your mentor!');
+      setReplyComments(prev => ({ ...prev, [feedbackId]: '' }));
+      refetchFeedback();
+    } catch {
+      toast.error('Failed to post comment.');
     }
   };
 
@@ -120,15 +206,15 @@ const EmployeeDashboard: React.FC = () => {
     phoneNumber: (user as any)?.profile?.phone_number || (user as any)?.phoneNo || '—',
   };
 
-  // Published appraisals & feedback
-  const publishedAppraisals = appraisals.filter(a => a.published || a.status === 'PUBLISHED');
+  // Published appraisals
+  const publishedAppraisals = appraisals.filter((a) => a.published && a.overallScore !== null);
 
-  const tabs: Array<{ id: DashboardTab; label: string; icon: React.ElementType; badge?: number }> = [
+  const tabs: { id: DashboardTab; label: string; icon: any; badge?: number }[] = [
     { id: 'overview', label: 'Overview', icon: Trophy },
-    { id: 'goals', label: 'My Goals', icon: Target, badge: goals.length },
+    { id: 'goals', label: 'My Goals & KRAs', icon: Target, badge: goals.length },
     { id: 'tasks', label: 'My Tasks', icon: ClipboardList, badge: dashData?.pendingTasksCount },
-    { id: 'evidence', label: 'Evidence', icon: FileText },
-    { id: 'evaluation', label: 'Evaluation / Self Assessment', icon: CheckCircle2 },
+    { id: 'evidence', label: 'Evidence & Proofs', icon: FileText, badge: evidenceList.length },
+    { id: 'evaluation', label: 'Technical Matrix & Review', icon: CheckCircle2, badge: technicalReviews.length },
     { id: 'results', label: 'Results & Feedback', icon: Award, badge: publishedAppraisals.length },
     { id: 'profile', label: 'Profile', icon: User },
   ];
@@ -232,10 +318,10 @@ const EmployeeDashboard: React.FC = () => {
               color="orange"
             />
             <DashboardStatCard
-              title="Attendance / Days"
-              value={dashData?.feedbackCount ?? 0}
-              subtitle="Logged Active Days"
-              icon={<MessageSquare size={16} />}
+              title="Submitted Proofs"
+              value={evidenceList.length}
+              subtitle={`${evidenceList.filter(e => e.reviewStatus === 'APPROVED').length} approved by mentor`}
+              icon={<FileText size={16} />}
               color="purple"
             />
           </div>
@@ -258,181 +344,173 @@ const EmployeeDashboard: React.FC = () => {
                       onClick={() => handleDownload('excel')}
                       className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-md text-[11px] font-semibold hover:bg-emerald-100 transition-colors cursor-pointer"
                     >
-                      <ClipboardList size={11} /> Excel
+                      <FileText size={11} /> Excel
                     </button>
                   </div>
                 }
               >
-                {dashData?.performanceTrend && dashData.performanceTrend.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={dashData.performanceTrend}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F0F2F6" />
-                      <XAxis dataKey="period" stroke="#9EA3B0" fontSize={11} tickLine={false} axisLine={false} />
-                      <YAxis stroke="#9EA3B0" fontSize={11} tickLine={false} axisLine={false} domain={[0, 100]} />
-                      <Tooltip contentStyle={{ borderRadius: 8, border: "0.5px solid #E4E6EC", boxShadow: "none", fontSize: 12 }} />
-                      <Line type="monotone" dataKey="score" stroke="#1A56DB" strokeWidth={2.5} dot={{ r: 4, fill: '#1A56DB', strokeWidth: 2, stroke: '#fff' }} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="h-full flex flex-col items-center justify-center text-slate-400 text-xs">
-                    <TrendingUp size={28} className="text-slate-300 mb-2" />
-                    <span>No historical performance trend data available yet</span>
-                  </div>
-                )}
-              </ChartCard>
-            </div>
-
-            {/* KPI Status Distribution */}
-            <div>
-              <ChartCard title="KPI Status Distribution">
-                {dashData?.kpiStatus && dashData.kpiStatus.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={dashData.kpiStatus}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={55}
-                        outerRadius={75}
-                        paddingAngle={4}
-                        dataKey="value"
-                      >
-                        {dashData.kpiStatus.map((_, index) => (
-                          <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip contentStyle={{ borderRadius: 8, border: "0.5px solid #E4E6EC", boxShadow: "none", fontSize: 12 }} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="h-full flex flex-col items-center justify-center text-slate-400 text-xs">
-                    <Target size={28} className="text-slate-300 mb-2" />
-                    <span>No KPI distribution metrics recorded</span>
-                  </div>
-                )}
-              </ChartCard>
-            </div>
-          </div>
-
-          {/* Tasks & Appraisal Timeline */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <TaskPanel
-              tasks={(dashData?.tasks || []).map(t => ({
-                id: t.id,
-                title: t.title,
-                deadline: t.deadline,
-                priority: (t.priority.charAt(0).toUpperCase() + t.priority.slice(1).toLowerCase()) as 'High' | 'Medium' | 'Low',
-              }))}
-            />
-
-            {/* Timeline */}
-            <div className="bg-white border border-slate-200 rounded-xl p-4">
-              <div className="flex items-center gap-2 mb-4">
-                <Clock size={16} className="text-indigo-600" />
-                <h3 className="text-sm font-semibold text-slate-900">Appraisal Cycle Timeline</h3>
-              </div>
-              {dashData?.appraisalTimeline && dashData.appraisalTimeline.length > 0 ? (
-                <div className="space-y-4">
-                  {dashData.appraisalTimeline.map((step, idx) => (
-                    <div key={idx} className="flex gap-3">
-                      <div className="flex flex-col items-center">
-                        <div
-                          className={`w-2.5 h-2.5 rounded-full shrink-0 ${
-                            step.active
-                              ? 'bg-indigo-600 ring-4 ring-indigo-50'
-                              : step.status === 'COMPLETED'
-                              ? 'bg-emerald-500'
-                              : 'bg-slate-300'
-                          }`}
+                <div className="h-64">
+                  {dashData?.performanceTrend && dashData.performanceTrend.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={dashData.performanceTrend} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                        <XAxis dataKey="period" tick={{ fontSize: 11, fill: '#64748B' }} tickLine={false} axisLine={false} />
+                        <YAxis tick={{ fontSize: 11, fill: '#64748B' }} tickLine={false} axisLine={false} domain={[0, 100]} />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: '#FFFFFF',
+                            borderRadius: '8px',
+                            boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                            border: '1px solid #E2E8F0',
+                            fontSize: '11px',
+                          }}
                         />
-                        {idx !== dashData.appraisalTimeline.length - 1 && (
-                          <div className="w-px flex-1 bg-slate-200 my-1" />
-                        )}
-                      </div>
-                      <div className="pb-1">
-                        <p className={`text-xs font-semibold ${step.active ? 'text-indigo-600' : 'text-slate-900'}`}>
-                          {step.phase}
-                        </p>
-                        <p className="text-[11px] text-slate-500 mt-0.5">
-                          {step.date} — <span className="font-medium text-slate-700">{step.status}</span>
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="py-8 text-center text-xs text-slate-400">
-                  No active appraisal timeline phases scheduled.
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* PIP and Manager Feedback */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {dashData?.onPip && (
-              <div className="lg:col-span-2 bg-red-50 border border-red-200 rounded-xl p-4 flex gap-3">
-                <AlertTriangle size={20} className="text-red-600 shrink-0 mt-0.5" />
-                <div>
-                  <h4 className="text-xs font-bold text-red-900">Performance Improvement Plan (PIP) Notice</h4>
-                  <p className="text-xs text-red-700 mt-1">
-                    You have an active performance improvement review plan. Work with your assigned mentor on designated deliverables.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* Team Rank & Cohort Stats */}
-            <div className="bg-white border border-slate-200 rounded-xl p-4">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Cohort Benchmarking</h3>
-              <div className="grid grid-cols-2 gap-3">
-                {dashData?.teamRank !== undefined ? (
-                  <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-center">
-                    <span className="text-[11px] text-slate-400 block mb-1">Team Rank</span>
-                    <span className="text-lg font-bold text-indigo-700">
-                      #{dashData.teamRank}
-                    </span>
-                    <span className="text-[11px] text-slate-400 block mt-0.5">of {dashData.teamSize || 1} interns</span>
-                  </div>
-                ) : (
-                  <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-center text-xs text-slate-400">
-                    Rank: Not Published
-                  </div>
-                )}
-
-                <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-center">
-                  <span className="text-[11px] text-slate-400 block mb-1">Active Cycle</span>
-                  <span className="text-xs font-semibold text-slate-800 block truncate">
-                    {goals[0]?.cycleName || 'Summer 2025'}
-                  </span>
-                  <span className="text-[11px] text-emerald-600 font-medium block mt-0.5">In Progress</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Manager Feedback */}
-            {dashData?.managerLastScore !== undefined && (
-              <div className="bg-white border border-slate-200 rounded-xl p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <MessageSquare size={16} className="text-indigo-600" />
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">Published Mentor Feedback</h3>
-                </div>
-                <div>
-                  <div className="flex items-baseline justify-between mb-2">
-                    <span className="text-xs text-slate-500">Evaluation Score</span>
-                    <span className="text-base font-bold text-indigo-700">
-                      {dashData.managerLastScore.toFixed(1)}%
-                    </span>
-                  </div>
-                  {dashData.managerLastComment && (
-                    <div className="pt-2 border-t border-slate-100">
-                      <span className="text-[11px] text-slate-400 block mb-1">Mentor Qualitative Remarks:</span>
-                      <p className="text-xs text-slate-600 leading-relaxed italic">
-                        "{dashData.managerLastComment}"
-                      </p>
+                        <Line
+                          type="monotone"
+                          dataKey="score"
+                          stroke="#1A56DB"
+                          strokeWidth={2.5}
+                          dot={{ r: 4, fill: '#1A56DB' }}
+                          activeDot={{ r: 6 }}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="h-full flex flex-col items-center justify-center text-slate-400 space-y-1">
+                      <TrendingUp size={32} className="text-slate-300" />
+                      <p className="text-xs">No historical performance data points yet.</p>
+                      <p className="text-[11px] text-slate-400">Score trends will appear as appraisal cycles are completed.</p>
                     </div>
                   )}
                 </div>
+              </ChartCard>
+            </div>
+
+            {/* KPI Breakdown Pie */}
+            <div>
+              <ChartCard title="KPI Status Distribution">
+                <div className="h-64 flex flex-col items-center justify-center">
+                  {dashData?.kpiStatus && dashData.kpiStatus.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={dashData.kpiStatus}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={55}
+                          outerRadius={80}
+                          paddingAngle={5}
+                          dataKey="value"
+                        >
+                          {dashData.kpiStatus.map((_, index) => (
+                            <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: '#FFFFFF',
+                            borderRadius: '8px',
+                            boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                            border: '1px solid #E2E8F0',
+                            fontSize: '11px',
+                          }}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="text-center text-slate-400 space-y-1">
+                      <Target size={32} className="text-slate-300 mx-auto" />
+                      <p className="text-xs">No KPI distribution recorded.</p>
+                    </div>
+                  )}
+                </div>
+              </ChartCard>
+            </div>
+          </div>
+
+          {/* Continuous Mentor Feedback Stream */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100">
+                  <MessageSquare size={18} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-900">Continuous Mentor Dialogue & Praise</h3>
+                  <p className="text-xs text-slate-500">Real-time coaching notes, praise, and feedback threads from your mentor.</p>
+                </div>
+              </div>
+              <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-600">
+                {feedbackList.length} Messages
+              </span>
+            </div>
+
+            {isFeedbackLoading ? (
+              <div className="py-8 text-center text-xs text-slate-400">Loading feedback stream…</div>
+            ) : feedbackList.length > 0 ? (
+              <div className="space-y-3">
+                {feedbackList.map((f) => (
+                  <div key={f.id} className="p-4 border border-slate-200 rounded-xl bg-slate-50/50 space-y-3">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${
+                          f.feedbackType === 'PRAISE' || f.feedbackType === 'POSITIVE'
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                            : 'bg-blue-50 text-blue-700 border border-blue-200'
+                        }`}>
+                          {f.feedbackType}
+                        </span>
+                        <span className="text-xs font-semibold text-slate-800">{f.senderName}</span>
+                        {f.goalTitle && (
+                          <span className="text-[11px] text-slate-400">• Goal: {f.goalTitle}</span>
+                        )}
+                      </div>
+                      <span className="text-[11px] text-slate-400">{f.createdAt}</span>
+                    </div>
+
+                    <p className="text-xs text-slate-700 leading-relaxed italic bg-white p-3 rounded-lg border border-slate-200">
+                      "{f.message}"
+                    </p>
+
+                    {/* Thread Comments */}
+                    {f.comments && f.comments.length > 0 && (
+                      <div className="pl-4 space-y-2 border-l-2 border-indigo-200">
+                        {f.comments.map((c) => (
+                          <div key={c.id} className="text-xs bg-white p-2.5 rounded-lg border border-slate-100">
+                            <div className="flex items-center justify-between text-[11px] text-slate-400 mb-1">
+                              <span className="font-semibold text-slate-700">{c.authorName}</span>
+                              <span>{c.createdAt}</span>
+                            </div>
+                            <p className="text-slate-600">{c.comment}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Reply Input */}
+                    <div className="flex items-center gap-2 pt-1">
+                      <input
+                        type="text"
+                        placeholder="Reply to mentor feedback…"
+                        value={replyComments[f.id] || ''}
+                        onChange={(e) => setReplyComments(prev => ({ ...prev, [f.id]: e.target.value }))}
+                        className="flex-1 px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:outline-hidden focus:border-indigo-500"
+                      />
+                      <button
+                        onClick={() => handleAddReplyComment(f.id)}
+                        disabled={isSubmittingComment}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold cursor-pointer transition-colors"
+                      >
+                        <Send size={12} />
+                        <span>Reply</span>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-6 text-center text-xs text-slate-400 border border-dashed border-slate-200 rounded-xl">
+                No feedback received from mentor yet. As your manager reviews tasks and code, coaching remarks will appear here.
               </div>
             )}
           </div>
@@ -451,7 +529,7 @@ const EmployeeDashboard: React.FC = () => {
               </div>
               <div>
                 <h2 className="text-base font-semibold text-slate-900">My Assigned Goals & KRAs</h2>
-                <p className="text-xs text-slate-500 mt-0.5">Live deliverables assigned by your mentor with milestone tracking.</p>
+                <p className="text-xs text-slate-500 mt-0.5">Live deliverables assigned by your mentor with interactive milestone tracking.</p>
               </div>
             </div>
             <Link
@@ -489,59 +567,85 @@ const EmployeeDashboard: React.FC = () => {
             </div>
           </div>
 
-          {/* Live Goals List */}
+          {/* Live Goals List with Sliders */}
           {isGoalsLoading ? (
             <div className="py-12 text-center text-xs text-slate-400">Loading assigned goals…</div>
           ) : goals.length > 0 ? (
-            <div className="space-y-3">
-              {goals.map((g) => (
-                <div key={g.id} className="p-4 border border-slate-200 rounded-xl hover:border-indigo-200 transition-colors bg-white">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-sm font-semibold text-slate-900">{g.title}</h3>
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${
-                        g.status === 'COMPLETED'
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                          : g.status === 'IN_PROGRESS'
-                          ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                          : 'bg-slate-100 text-slate-600 border border-slate-200'
-                      }`}>
-                        {g.status.replace('_', ' ')}
-                      </span>
-                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase ${
-                        g.priority === 'HIGH' || g.priority === 'CRITICAL'
-                          ? 'bg-red-50 text-red-700'
-                          : 'bg-blue-50 text-blue-700'
-                      }`}>
-                        {g.priority}
+            <div className="space-y-4">
+              {goals.map((g) => {
+                const currentProgress = goalSliderValues[g.id] ?? (g.completionPercentage ?? g.progress);
+                return (
+                  <div key={g.id} className="p-5 border border-slate-200 rounded-xl hover:border-indigo-200 transition-colors bg-white space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-sm font-semibold text-slate-900">{g.title}</h3>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${
+                          g.status === 'COMPLETED'
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                            : g.status === 'IN_PROGRESS'
+                            ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                            : 'bg-slate-100 text-slate-600 border border-slate-200'
+                        }`}>
+                          {g.status.replace('_', ' ')}
+                        </span>
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase ${
+                          g.priority === 'HIGH' || g.priority === 'CRITICAL'
+                            ? 'bg-red-50 text-red-700'
+                            : 'bg-blue-50 text-blue-700'
+                        }`}>
+                          {g.priority}
+                        </span>
+                      </div>
+                      <span className="text-sm font-bold text-indigo-700">
+                        {currentProgress}%
                       </span>
                     </div>
-                    <span className="text-xs font-bold text-indigo-700">
-                      {g.completionPercentage ?? g.progress}%
-                    </span>
-                  </div>
 
-                  <p className="text-xs text-slate-500 mb-3">{g.description}</p>
+                    <p className="text-xs text-slate-500">{g.description}</p>
 
-                  {/* Progress bar */}
-                  <div className="w-full bg-slate-100 rounded-full h-2 mb-2 overflow-hidden">
-                    <div
-                      className={`h-2 rounded-full transition-all duration-500 ${
-                        (g.completionPercentage ?? g.progress) >= 100
-                          ? 'bg-emerald-600'
-                          : 'bg-indigo-600'
-                      }`}
-                      style={{ width: `${Math.min(100, g.completionPercentage ?? g.progress)}%` }}
-                    />
-                  </div>
+                    {/* Progress Slider */}
+                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-semibold text-slate-700">Adjust Milestone Progress:</span>
+                        <span className="font-bold text-indigo-700">{currentProgress}%</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="range"
+                          min="0"
+                          max="100"
+                          step="5"
+                          value={currentProgress}
+                          onChange={(e) => handleGoalSliderChange(g.id, Number(e.target.value))}
+                          className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                        />
+                        <button
+                          onClick={() => handleSaveGoalProgress(g.id, g.completionPercentage ?? g.progress)}
+                          disabled={isUpdatingGoal}
+                          className="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold whitespace-nowrap cursor-pointer transition-colors shadow-2xs"
+                        >
+                          Save
+                        </button>
+                      </div>
+                    </div>
 
-                  <div className="flex items-center justify-between text-[11px] text-slate-400">
-                    <span>Cycle: {g.cycleName}</span>
-                    <span>{g.dueDate ? `Due: ${g.dueDate}` : 'No deadline set'}</span>
-                    {g.assignedByName && <span>Assigned by: {g.assignedByName}</span>}
+                    <div className="flex items-center justify-between flex-wrap gap-2 text-[11px] text-slate-400 pt-1">
+                      <span>Cycle: {g.cycleName}</span>
+                      <span>{g.dueDate ? `Due: ${g.dueDate}` : 'No deadline set'}</span>
+                      {g.assignedByName && <span>Assigned by: <strong>{g.assignedByName}</strong></span>}
+                      <button
+                        onClick={() => {
+                          setEvidenceForm(prev => ({ ...prev, goalId: g.id, title: `Proof for ${g.title}` }));
+                          setActiveTab('evidence');
+                        }}
+                        className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 underline cursor-pointer"
+                      >
+                        + Submit Proof of Work
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <div className="p-8 text-center border border-dashed border-slate-200 rounded-xl">
@@ -584,131 +688,349 @@ const EmployeeDashboard: React.FC = () => {
       )}
 
       {/* ============================================================== */}
-      {/* TAB 4: EVIDENCE */}
+      {/* TAB 4: EVIDENCE & SUBMISSIONS */}
       {/* ============================================================== */}
       {activeTab === 'evidence' && (
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 space-y-5">
+        <div className="bg-white rounded-2xl border border-slate-200 p-6 space-y-6">
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-3">
               <div className="p-2.5 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100">
                 <FolderGit2 size={22} />
               </div>
               <div>
-                <h2 className="text-base font-semibold text-slate-900">Evidence Submission Summary</h2>
-                <p className="text-xs text-slate-500 mt-0.5">Proof of work submissions attached to your goals.</p>
+                <h2 className="text-base font-semibold text-slate-900">Evidence Submissions & Review Decisions</h2>
+                <p className="text-xs text-slate-500 mt-0.5">Submit pull requests, commits, and documents to your mentor and track verification status.</p>
               </div>
             </div>
-            <Link
-              to="/kpi/my"
-              className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow-xs transition-all"
-            >
-              <span>Submit Evidence in Goals</span>
-              <ExternalLink size={13} />
-            </Link>
+            <span className="text-xs font-semibold px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+              {evidenceList.length} Submissions Logged
+            </span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50">
-              <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 font-bold flex items-center justify-center text-xs mb-2">1</div>
-              <h3 className="text-sm font-semibold text-slate-800">Attach Proof</h3>
-              <p className="text-xs text-slate-500 mt-1">Provide external links to GitHub PRs, commits, Figma specs, or file attachments.</p>
-            </div>
-            <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50">
-              <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 font-bold flex items-center justify-center text-xs mb-2">2</div>
-              <h3 className="text-sm font-semibold text-slate-800">Mentor Review</h3>
-              <p className="text-xs text-slate-500 mt-1">Your assigned manager evaluates code quality and verifies completion criteria.</p>
-            </div>
-            <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50">
-              <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 font-bold flex items-center justify-center text-xs mb-2">3</div>
-              <h3 className="text-sm font-semibold text-slate-800">Status Verification</h3>
-              <p className="text-xs text-slate-500 mt-1">Evidence transitions from PENDING to APPROVED or REVISION_REQUESTED.</p>
-            </div>
-          </div>
+          {/* Evidence Submission Form */}
+          <form onSubmit={handleSubmitEvidence} className="p-5 rounded-xl border border-emerald-200 bg-emerald-50/30 space-y-4">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-emerald-900 flex items-center gap-2">
+              <Code size={16} className="text-emerald-600" />
+              <span>Submit Proof of Work to Mentor</span>
+            </h3>
 
-          <div className="p-4 rounded-xl bg-emerald-50/70 border border-emerald-100 text-xs text-emerald-900">
-            <span className="font-semibold">Interactive Submission:</span> Multi-file attachment and evidence review status updates will be activated in Phase 5.
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-[11px] font-semibold text-slate-700 block mb-1">Select Goal / Milestone *</label>
+                <select
+                  value={evidenceForm.goalId}
+                  onChange={(e) => setEvidenceForm(prev => ({ ...prev, goalId: e.target.value }))}
+                  required
+                  className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-lg focus:outline-hidden focus:border-emerald-500"
+                >
+                  <option value="">-- Choose an assigned goal --</option>
+                  {goals.map((g) => (
+                    <option key={g.id} value={g.id}>{g.title}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[11px] font-semibold text-slate-700 block mb-1">Deliverable Title *</label>
+                <input
+                  type="text"
+                  placeholder="e.g. PR #42: RBAC Middleware & JWT Verification"
+                  value={evidenceForm.title}
+                  onChange={(e) => setEvidenceForm(prev => ({ ...prev, title: e.target.value }))}
+                  required
+                  className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-lg focus:outline-hidden focus:border-emerald-500"
+                >
+                </input>
+              </div>
+
+              <div>
+                <label className="text-[11px] font-semibold text-slate-700 block mb-1">External Proof URL (GitHub PR / Figma / Doc)</label>
+                <input
+                  type="url"
+                  placeholder="https://github.com/org/repo/pull/42"
+                  value={evidenceForm.externalUrl}
+                  onChange={(e) => setEvidenceForm(prev => ({ ...prev, externalUrl: e.target.value }))}
+                  className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-lg focus:outline-hidden focus:border-emerald-500"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] font-semibold text-slate-700 block mb-1">Notes / Description for Mentor</label>
+                <input
+                  type="text"
+                  placeholder="Summary of implementation details, tests written, or design decisions..."
+                  value={evidenceForm.description}
+                  onChange={(e) => setEvidenceForm(prev => ({ ...prev, description: e.target.value }))}
+                  className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-lg focus:outline-hidden focus:border-emerald-500"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end">
+              <button
+                type="submit"
+                disabled={isSubmittingEvidence}
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow-xs transition-all cursor-pointer"
+              >
+                <Send size={13} />
+                <span>{isSubmittingEvidence ? 'Submitting…' : 'Submit Proof for Review'}</span>
+              </button>
+            </div>
+          </form>
+
+          {/* Submitted Evidence Cards */}
+          <div className="space-y-3">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Your Submitted Evidence Records</h3>
+            {isEvidenceLoading ? (
+              <div className="py-8 text-center text-xs text-slate-400">Loading submitted evidence…</div>
+            ) : evidenceList.length > 0 ? (
+              <div className="space-y-3">
+                {evidenceList.map((e) => (
+                  <div key={e.id} className="p-4 border border-slate-200 rounded-xl bg-white space-y-2.5">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <div>
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                          Goal: {e.goalTitle}
+                        </span>
+                        <h4 className="text-sm font-semibold text-slate-900 mt-0.5">{e.title}</h4>
+                      </div>
+                      <span className={`text-xs font-bold px-2.5 py-1 rounded-full uppercase ${
+                        e.reviewStatus === 'APPROVED'
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                          : e.reviewStatus === 'REJECTED'
+                          ? 'bg-red-50 text-red-700 border border-red-200'
+                          : e.reviewStatus === 'REVISION_REQUESTED'
+                          ? 'bg-purple-50 text-purple-700 border border-purple-200'
+                          : 'bg-amber-50 text-amber-700 border border-amber-200'
+                      }`}>
+                        {e.reviewStatusDisplay || e.reviewStatus}
+                      </span>
+                    </div>
+
+                    {e.description && (
+                      <p className="text-xs text-slate-600">{e.description}</p>
+                    )}
+
+                    {e.externalUrl && (
+                      <a
+                        href={e.externalUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800 font-semibold"
+                      >
+                        <ExternalLink size={12} />
+                        <span>View Proof Repository / Deliverable Link</span>
+                      </a>
+                    )}
+
+                    {/* Mentor Audit Remarks */}
+                    {e.reviewNotes && (
+                      <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs space-y-1">
+                        <span className="font-semibold text-slate-800 block">
+                          Mentor Review Decision Remarks ({e.reviewedByName || 'Tech Manager'}):
+                        </span>
+                        <p className="text-slate-600 italic">"{e.reviewNotes}"</p>
+                        {e.reviewedAt && (
+                          <span className="text-[10px] text-slate-400 block">Audited on {e.reviewedAt}</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-8 text-center border border-dashed border-slate-200 rounded-xl space-y-1">
+                <FolderGit2 size={28} className="text-slate-300 mx-auto" />
+                <p className="text-xs font-semibold text-slate-700">No evidence submitted yet</p>
+                <p className="text-xs text-slate-400">Use the form above to link GitHub PRs or deliverables to your assigned goals.</p>
+              </div>
+            )}
           </div>
         </div>
       )}
 
       {/* ============================================================== */}
-      {/* TAB 5: EVALUATION / SELF ASSESSMENT */}
+      {/* TAB 5: EVALUATION & TECHNICAL MATRIX */}
       {/* ============================================================== */}
       {activeTab === 'evaluation' && (
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 space-y-5">
+        <div className="bg-white rounded-2xl border border-slate-200 p-6 space-y-6">
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-3">
               <div className="p-2.5 rounded-xl bg-purple-50 text-purple-600 border border-purple-100">
                 <CheckCircle2 size={22} />
               </div>
               <div>
-                <h2 className="text-base font-semibold text-slate-900">Appraisal & Self Assessment</h2>
-                <p className="text-xs text-slate-500 mt-0.5">Track your official evaluation cycles and self-assessment status.</p>
+                <h2 className="text-base font-semibold text-slate-900">Technical Capability Matrix & Appraisal</h2>
+                <p className="text-xs text-slate-500 mt-0.5">Benchmark skill assessments by your mentor and official appraisal status.</p>
               </div>
             </div>
             <Link
               to="/appraisal"
               className="inline-flex items-center gap-1.5 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-semibold shadow-xs transition-all"
             >
-              <span>Go to Appraisal Workflow</span>
+              <span>Go to Self-Appraisal</span>
               <ExternalLink size={13} />
             </Link>
           </div>
 
-          {/* Active Cycle Status Card */}
-          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between flex-wrap gap-3">
-            <div>
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Current Appraisal Cycle</span>
-              <h3 className="text-sm font-bold text-slate-900 mt-0.5">
-                {scorecard?.activeAppraisalStatus
-                  ? `${goals[0]?.cycleName || 'Active Cycle'} — ${scorecard.activeAppraisalStatus}`
-                  : 'Summer 2025 Intern Appraisal Cycle'}
+          {/* Technical Capability Matrix (Feature M-05 & M-04) */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-2">
+                <Layers size={15} className="text-purple-600" />
+                <span>Mentor Technical Capability Evaluation</span>
               </h3>
+              <span className="text-xs text-slate-400">Scale: 1.0 to 5.0</span>
             </div>
-            <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${
-              scorecard?.activeAppraisalStatus === 'SUBMITTED'
-                ? 'bg-blue-100 text-blue-700'
-                : scorecard?.activeAppraisalStatus === 'PUBLISHED'
-                ? 'bg-emerald-100 text-emerald-700'
-                : 'bg-amber-100 text-amber-700'
-            }`}>
-              {scorecard?.activeAppraisalStatus || 'IN_PROGRESS'}
-            </span>
-          </div>
 
-          {/* Appraisal Records */}
-          <div className="space-y-3">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Your Appraisal Records</h3>
-            {isAppraisalsLoading ? (
-              <div className="py-8 text-center text-xs text-slate-400">Loading appraisal records…</div>
-            ) : appraisals.length > 0 ? (
-              appraisals.map((a) => (
-                <div key={a.id} className="p-4 border border-slate-200 rounded-xl flex items-center justify-between bg-white">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-slate-900">{a.cycleName}</span>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
-                        {a.appraisalType}
-                      </span>
+            {isTechLoading ? (
+              <div className="py-8 text-center text-xs text-slate-400">Loading technical capability matrix…</div>
+            ) : technicalReviews.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {technicalReviews.map((t) => (
+                  <div key={t.parameterId} className="p-4 border border-slate-200 rounded-xl bg-white space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full uppercase">
+                          {t.category}
+                        </span>
+                        <h4 className="text-sm font-semibold text-slate-900 mt-1">{t.name}</h4>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[10px] text-slate-400 block">Benchmark</span>
+                        <span className="text-xs font-bold text-slate-700">{t.benchmarkScore.toFixed(1)} / 5.0</span>
+                      </div>
                     </div>
-                    <span className="text-xs text-slate-500 mt-1 block">
-                      Status: <strong className="text-slate-700">{a.status}</strong>
-                    </span>
+
+                    <p className="text-xs text-slate-500">{t.description}</p>
+
+                    {/* Mentor Score */}
+                    <div className="p-3 bg-slate-50 rounded-lg border border-slate-100 space-y-1.5">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-semibold text-slate-700">Mentor Rating:</span>
+                        {t.review.score !== null ? (
+                          <span className="font-bold text-indigo-700 text-sm">
+                            {t.review.score.toFixed(1)} / 5.0
+                          </span>
+                        ) : (
+                          <span className="text-amber-600 font-semibold text-[11px] bg-amber-50 px-2 py-0.5 rounded-full">
+                            {t.review.status === 'DRAFT' ? 'Draft in progress' : 'Awaiting mentor evaluation'}
+                          </span>
+                        )}
+                      </div>
+
+                      {t.review.score !== null && (
+                        <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
+                          <div
+                            className="bg-indigo-600 h-1.5 rounded-full"
+                            style={{ width: `${(t.review.score / 5.0) * 100}%` }}
+                          />
+                        </div>
+                      )}
+
+                      {t.review.mentorAssessment && (
+                        <p className="text-xs text-slate-600 italic pt-1 border-t border-slate-200">
+                          Mentor Note: "{t.review.mentorAssessment}"
+                        </p>
+                      )}
+
+                      {t.review.reviewerName && (
+                        <span className="text-[10px] text-slate-400 block pt-0.5">
+                          Evaluated by {t.review.reviewerName}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <div>
-                    {a.overallScore !== null ? (
-                      <span className="text-base font-bold text-indigo-700">{a.overallScore.toFixed(1)}%</span>
-                    ) : (
-                      <span className="text-xs text-slate-400 italic">Score pending publication</span>
-                    )}
-                  </div>
-                </div>
-              ))
+                ))}
+              </div>
             ) : (
               <div className="p-6 text-center text-xs text-slate-400 border border-dashed border-slate-200 rounded-xl">
-                No appraisal cycles recorded yet.
+                No technical parameters assigned to this cycle yet.
               </div>
             )}
+          </div>
+
+          {/* Formal Appraisal Privacy Section */}
+          <div className="pt-4 border-t border-slate-200 space-y-4">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-2">
+              <ShieldCheck size={16} className="text-indigo-600" />
+              <span>Appraisal Evaluation & Confidentiality Pipeline</span>
+            </h3>
+
+            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div>
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Current Appraisal Cycle</span>
+                  <h4 className="text-sm font-bold text-slate-900 mt-0.5">
+                    {scorecard?.activeAppraisalStatus
+                      ? `${goals[0]?.cycleName || 'Active Cycle'} — ${scorecard.activeAppraisalStatus}`
+                      : 'Summer 2025 Intern Appraisal Cycle'}
+                  </h4>
+                </div>
+                <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${
+                  scorecard?.activeAppraisalStatus === 'SUBMITTED'
+                    ? 'bg-blue-100 text-blue-700'
+                    : scorecard?.activeAppraisalStatus === 'PUBLISHED'
+                    ? 'bg-emerald-100 text-emerald-700'
+                    : 'bg-amber-100 text-amber-700'
+                }`}>
+                  {scorecard?.activeAppraisalStatus === 'SUBMITTED' ? 'Under HR Calibration' : scorecard?.activeAppraisalStatus || 'IN_PROGRESS'}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
+                <div className="p-3 bg-white border border-slate-200 rounded-lg text-xs">
+                  <span className="font-semibold text-slate-800 block">Stage 1: Self Appraisal</span>
+                  <span className="text-emerald-600 font-medium block mt-1">Submitted & Verified</span>
+                </div>
+                <div className="p-3 bg-white border border-slate-200 rounded-lg text-xs">
+                  <span className="font-semibold text-slate-800 block">Stage 2: Mentor Review</span>
+                  <span className="text-indigo-600 font-medium block mt-1">
+                    {scorecard?.activeAppraisalStatus === 'SUBMITTED' ? 'Submitted to HR' : 'In Progress'}
+                  </span>
+                </div>
+                <div className="p-3 bg-white border border-slate-200 rounded-lg text-xs">
+                  <span className="font-semibold text-slate-800 block">Stage 3: HR Calibration</span>
+                  <span className="text-slate-500 font-medium block mt-1">
+                    {scorecard?.activeAppraisalStatus === 'PUBLISHED' ? 'Published' : 'Pending Normalization'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Appraisal Records */}
+            <div className="space-y-3">
+              {isAppraisalsLoading ? (
+                <div className="py-6 text-center text-xs text-slate-400">Loading appraisal records…</div>
+              ) : appraisals.length > 0 ? (
+                appraisals.map((a) => (
+                  <div key={a.id} className="p-4 border border-slate-200 rounded-xl flex items-center justify-between bg-white flex-wrap gap-2">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold text-slate-900">{a.cycleName}</span>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
+                          {a.appraisalType}
+                        </span>
+                      </div>
+                      <span className="text-xs text-slate-500 mt-1 block">
+                        Status: <strong className="text-slate-700">{a.statusDisplay || a.status}</strong>
+                      </span>
+                    </div>
+                    <div>
+                      {a.overallScore !== null ? (
+                        <span className="text-base font-bold text-indigo-700">{a.overallScore.toFixed(1)}%</span>
+                      ) : (
+                        <span className="text-xs text-slate-400 italic">Score masked until HR publication</span>
+                      )}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="p-6 text-center text-xs text-slate-400 border border-dashed border-slate-200 rounded-xl">
+                  No appraisal cycles recorded yet.
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -820,81 +1142,57 @@ const EmployeeDashboard: React.FC = () => {
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 pt-1">
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
-              <div className="flex items-center gap-1.5 text-xs text-slate-400 font-medium mb-1">
-                <User size={13} />
-                <span>Full Name</span>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-2.5 text-xs">
+              <div className="flex items-center gap-2 text-slate-400 font-semibold uppercase text-[10px]">
+                <Briefcase size={12} />
+                <span>Employment Information</span>
               </div>
-              <div className="text-sm font-semibold text-slate-900 truncate">{internProfile.name}</div>
-            </div>
-
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
-              <div className="flex items-center gap-1.5 text-xs text-slate-400 font-medium mb-1">
-                <Mail size={13} />
-                <span>Email Address</span>
-              </div>
-              <div className="text-sm font-semibold text-slate-900 truncate">{internProfile.email}</div>
-            </div>
-
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
-              <div className="flex items-center gap-1.5 text-xs text-slate-400 font-medium mb-1">
-                <Briefcase size={13} />
-                <span>Designation</span>
-              </div>
-              <div className="text-sm font-semibold text-slate-900">{internProfile.designation}</div>
-            </div>
-
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
-              <div className="flex items-center gap-1.5 text-xs text-slate-400 font-medium mb-1">
-                <Target size={13} />
-                <span>Department</span>
-              </div>
-              <div className="text-sm font-semibold text-slate-900">{internProfile.department}</div>
-            </div>
-
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
-              <div className="flex items-center gap-1.5 text-xs text-slate-400 font-medium mb-1">
-                <UserCheck size={13} />
-                <span>Reporting Mentor / Manager</span>
-              </div>
-              <div className="text-sm font-semibold text-slate-900">{internProfile.mentor}</div>
-            </div>
-
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
-              <div className="flex items-center gap-1.5 text-xs text-slate-400 font-medium mb-1">
-                <Hash size={13} />
-                <span>Employee Code</span>
-              </div>
-              <div className="text-sm font-semibold text-slate-900">{internProfile.employeeCode}</div>
-            </div>
-
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
-              <div className="flex items-center gap-1.5 text-xs text-slate-400 font-medium mb-1">
-                <Calendar size={13} />
-                <span>Cohort / Joining Date</span>
-              </div>
-              <div className="text-sm font-semibold text-slate-900">
-                {internProfile.joiningDate !== '—' ? internProfile.joiningDate : internProfile.cohort}
+              <div className="space-y-1.5 pt-1">
+                <div className="flex justify-between py-1 border-b border-slate-100">
+                  <span className="text-slate-500">Designation</span>
+                  <span className="font-semibold text-slate-800">{internProfile.designation}</span>
+                </div>
+                <div className="flex justify-between py-1 border-b border-slate-100">
+                  <span className="text-slate-500">Department</span>
+                  <span className="font-semibold text-slate-800">{internProfile.department}</span>
+                </div>
+                <div className="flex justify-between py-1 border-b border-slate-100">
+                  <span className="text-slate-500">Assigned Mentor</span>
+                  <span className="font-semibold text-indigo-700">{internProfile.mentor}</span>
+                </div>
+                <div className="flex justify-between py-1">
+                  <span className="text-slate-500">Cohort</span>
+                  <span className="font-semibold text-slate-800">{internProfile.cohort}</span>
+                </div>
               </div>
             </div>
 
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
-              <div className="flex items-center gap-1.5 text-xs text-slate-400 font-medium mb-1">
-                <CheckCircle2 size={13} />
-                <span>Employment Status</span>
+            <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-2.5 text-xs">
+              <div className="flex items-center gap-2 text-slate-400 font-semibold uppercase text-[10px]">
+                <Hash size={12} />
+                <span>Account Credentials</span>
               </div>
-              <span className="inline-block px-2 py-0.5 rounded text-[11px] font-bold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
-                {internProfile.status}
-              </span>
-            </div>
-
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
-              <div className="flex items-center gap-1.5 text-xs text-slate-400 font-medium mb-1">
-                <PhoneIcon />
-                <span>Contact Phone</span>
+              <div className="space-y-1.5 pt-1">
+                <div className="flex justify-between py-1 border-b border-slate-100">
+                  <span className="text-slate-500">Employee ID</span>
+                  <span className="font-mono font-semibold text-slate-800">{internProfile.employeeCode}</span>
+                </div>
+                <div className="flex justify-between py-1 border-b border-slate-100">
+                  <span className="text-slate-500">Email Address</span>
+                  <span className="font-semibold text-slate-800">{internProfile.email}</span>
+                </div>
+                <div className="flex justify-between py-1 border-b border-slate-100">
+                  <span className="text-slate-500">Phone Number</span>
+                  <span className="font-semibold text-slate-800">{internProfile.phoneNumber}</span>
+                </div>
+                <div className="flex justify-between py-1">
+                  <span className="text-slate-500">Status</span>
+                  <span className="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                    {internProfile.status}
+                  </span>
+                </div>
               </div>
-              <div className="text-sm font-semibold text-slate-900">{internProfile.phoneNumber}</div>
             </div>
           </div>
         </div>
@@ -902,11 +1200,5 @@ const EmployeeDashboard: React.FC = () => {
     </div>
   );
 };
-
-const PhoneIcon: React.FC = () => (
-  <svg className="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-  </svg>
-);
 
 export default EmployeeDashboard;

@@ -7,7 +7,10 @@ import type {
   ManagerDashboardResponse,
   InternScorecardResponse,
   InternGoalItem,
-  InternAppraisalItem
+  InternAppraisalItem,
+  InternEvidenceItem,
+  InternTechnicalReviewItem,
+  InternFeedbackItem
 } from "./dashboardTypes";
 
 export const dashboardApi = api.injectEndpoints({
@@ -29,6 +32,8 @@ export const dashboardApi = api.injectEndpoints({
       query: () => "/dashboard/manager",
       transformResponse: (res: ApiResponse<ManagerDashboardResponse>) => res.data,
     }),
+
+    // Intern Endpoints
     getInternScorecard: builder.query<InternScorecardResponse, void>({
       query: () => "/intern/scorecard/",
       transformResponse: (res: any) => res?.data ?? res,
@@ -38,6 +43,45 @@ export const dashboardApi = api.injectEndpoints({
       query: () => "/intern/my-goals/",
       transformResponse: (res: any) => res?.data ?? res,
       providesTags: ["GoalSet"],
+    }),
+    updateInternGoalProgress: builder.mutation<{ code: number; message: string; data?: any }, { goalId: string; progress: number }>({
+      query: ({ goalId, progress }) => ({
+        url: `/intern/my-goals/${goalId}/progress/`,
+        method: "POST",
+        body: { progress },
+      }),
+      invalidatesTags: ["GoalSet", "Appraisal"],
+    }),
+    getInternEvidence: builder.query<InternEvidenceItem[], void>({
+      query: () => "/intern/evidence/",
+      transformResponse: (res: any) => res?.data ?? res,
+      providesTags: ["GoalSet"],
+    }),
+    submitInternEvidence: builder.mutation<{ code: number; message: string; data?: any }, { goalId: string; title: string; description?: string; externalUrl?: string }>({
+      query: (body) => ({
+        url: "/intern/evidence/",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["GoalSet"],
+    }),
+    getInternTechnicalReviews: builder.query<InternTechnicalReviewItem[], void>({
+      query: () => "/intern/technical-reviews/",
+      transformResponse: (res: any) => res?.data ?? res,
+      providesTags: ["Appraisal"],
+    }),
+    getInternFeedback: builder.query<InternFeedbackItem[], void>({
+      query: () => "/intern/feedback/",
+      transformResponse: (res: any) => res?.data ?? res,
+      providesTags: ["Profile"],
+    }),
+    addInternFeedbackComment: builder.mutation<{ code: number; message: string; data?: any }, { feedbackId: string; comment: string }>({
+      query: (body) => ({
+        url: "/intern/feedback/comment/",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["Profile"],
     }),
     getInternAppraisals: builder.query<InternAppraisalItem[], void>({
       query: () => "/intern/my-appraisals/",
@@ -54,5 +98,11 @@ export const {
   useGetManagerDashboardQuery,
   useGetInternScorecardQuery,
   useGetInternGoalsQuery,
+  useUpdateInternGoalProgressMutation,
+  useGetInternEvidenceQuery,
+  useSubmitInternEvidenceMutation,
+  useGetInternTechnicalReviewsQuery,
+  useGetInternFeedbackQuery,
+  useAddInternFeedbackCommentMutation,
   useGetInternAppraisalsQuery,
 } = dashboardApi;
