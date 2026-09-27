@@ -43,6 +43,7 @@ export const api = createApi({
     "IdpProgress",
     "AuditTrail",
     "FinalScore",
+    "Manager",
   ],
   endpoints: () => ({}),
   // This adds more context to traces

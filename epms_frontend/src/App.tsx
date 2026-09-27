@@ -15,6 +15,7 @@ import {
   generalRoutes,
   kpiRoutes,
   continuousRoutes,
+  managerRoutes,
 } from "./routes";
 import { ActiveCycleProvider } from "./context/ActiveCycleContext";
 import KpiCategoryManager from './pages/kpi/KpiCategoryManager';
@@ -98,6 +99,10 @@ const App = () => {
                 <Route key={route.path} path={route.path} element={route.element} />
               ))}
               {adminRoutes.filter(r => r.path === '/employees/:id/profile').map((route) => (
+                <Route key={route.path} path={route.path} element={route.element} />
+              ))}
+              {/* Manager & Mentor Operations Hub (M-01 to M-12) */}
+              {managerRoutes.map((route) => (
                 <Route key={route.path} path={route.path} element={route.element} />
               ))}
             </Route>

@@ -38,6 +38,7 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { label: "Executive Dashboard", to: "/dashboard", icon: LayoutDashboard },
+  { label: "Assigned Mentees", to: "/manager/mentees", icon: Users },
   { label: "Performance Appraisals", to: "/appraisal", icon: ClipboardCheck, end: true },
   { label: "Performance Pulse", to: "/performance-history/admin", icon: History, adminOnly: true },
   { label: "Team Pulse", to: "/performance-history/manager", icon: History, privilegedOnly: true, hideForAdmin: true },
@@ -75,6 +76,7 @@ const Sidebar = ({ onClose }: SidebarProps) => {
 
   const filteredNav = NAV_ITEMS.filter((item) => {
     switch (item.label) {
+      case "Assigned Mentees":    return isManager || isHR || isAdmin;
       case "Performance Pulse":   return hasPermission("REPORT_VIEW_ALL");
       case "Team Pulse":          return hasPermission("APPRAISAL_VIEW_TEAM") && !isAdmin && !isHR;
       case "Continuous Feedback": return true;
@@ -92,6 +94,13 @@ const Sidebar = ({ onClose }: SidebarProps) => {
     ...(hasPermission("KPI_VIEW_OWN") ? [{ to: "/kpi/my", label: "My Goals & KRAs" }] : []),
     ...(hasPermission("KPI_VIEW_OWN") && user ? [{ to: `/kpi/history/${user.id}`, label: "My KPI Journey" }] : []),
     ...(hasPermission("KPI_VIEW_TEAM") ? [{ to: "/kpi/team", label: "Team Performance" }] : []),
+    ...(isManager
+      ? [
+          { to: "/manager/tasks", label: "Team Tasks & Goals" },
+          { to: "/manager/technical-capabilities", label: "Technical Capabilities" },
+          { to: "/manager/evidence", label: "Evidence Reviews" },
+        ]
+      : []),
     ...(isHR || isAdmin
       ? [{ to: "/kpi/org-history", label: "Org KPI History" }]
       : []),
