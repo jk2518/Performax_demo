@@ -137,3 +137,21 @@ class PasswordResetToken(models.Model):
         return timezone.now() > self.expires_at
 
 
+class RolePermission(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    role = models.CharField(max_length=20, choices=UserRole.choices, db_index=True)
+    permission_code = models.CharField(max_length=100, db_index=True)
+    description = models.CharField(max_length=255, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Role Permission'
+        verbose_name_plural = 'Role Permissions'
+        unique_together = ('role', 'permission_code')
+        ordering = ['role', 'permission_code']
+
+    def __str__(self):
+        return f"{self.role} -> {self.permission_code}"
+
+

@@ -295,3 +295,114 @@ class PerformancePulseFeatureTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/pdf')
         self.assertTrue(response.content.startswith(b'%PDF-1.4'))
+
+
+class SuperAdminRolePermissionTests(TestCase):
+    def setUp(self):
+        self.factory = APIRequestFactory()
+        self.super_admin = User.objects.create_user(
+            email='admin-rbac@test.com',
+            username='super-admin-tester',
+            password='password123',
+            role=UserRole.SUPER_ADMIN,
+        )
+        self.intern = User.objects.create_user(
+            email='intern-rbac@test.com',
+            username='intern-tester',
+            password='password123',
+            role=UserRole.INTERN,
+        )
+        self.manager = User.objects.create_user(
+            email='manager-rbac@test.com',
+            username='manager-tester',
+            password='password123',
+            role=UserRole.MANAGER,
+        )
+
+    def test_users_list_requires_superadmin(self):
+        from apps.superadmin.views import SuperAdminUsersListView
+        request = self.factory.get('/api/superadmin/users/')
+        force_authenticate(request, user=self.intern)
+        response = SuperAdminUsersListView.as_view()(request)
+        self.assertEqual(response.status_code, 403)
+
+    def test_users_list_superadmin_success(self):
+        from apps.superadmin.views import SuperAdminUsersListView
+        request = self.factory.get('/api/superadmin/users/', {'search': 'intern-tester'})
+        force_authenticate(request, user=self.super_admin)
+        response = SuperAdminUsersListView.as_view()(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['data']), 1)
+        self.assertEqual(response.data['data'][0]['username'], 'intern-tester')
+
+    def test_update_user_role_success(self):
+        from apps.superadmin.views import SuperAdminUserRoleUpdateView
+        from apps.audit.models import AuditLog
+
+        request = self.factory.patch(
+            f'/api/superadmin/users/{self.intern.id}/role/',
+            {'role': 'MANAGER'},
+            format='json'
+        )
+        force_authenticate(request, user=self.super_admin)
+        response = SuperAdminUserRoleUpdateView.as_view()(request, user_id=self.intern.id)
+        self.assertEqual(response.status_code, 200)
+        self.intern.refresh_from_db()
+        self.assertEqual(self.intern.role, UserRole.MANAGER)
+
+        audit = AuditLog.objects.filter(action='USER_ROLE_UPDATED', entity_id=str(self.intern.id)).first()
+        self.assertIsNotNone(audit)
+        self.assertEqual(audit.metadata.get('new_role'), 'MANAGER')
+
+    def test_update_user_role_invalid_role(self):
+        from apps.superadmin.views import SuperAdminUserRoleUpdateView
+
+        request = self.factory.patch(
+            f'/api/superadmin/users/{self.intern.id}/role/',
+            {'role': 'INVALID_ROLE'},
+            format='json'
+        )
+        force_authenticate(request, user=self.super_admin)
+        response = SuperAdminUserRoleUpdateView.as_view()(request, user_id=self.intern.id)
+        self.assertEqual(response.status_code, 400)
+
+    def test_lockout_protection_prevents_demoting_last_superadmin(self):
+        from apps.superadmin.views import SuperAdminUserRoleUpdateView
+
+        request = self.factory.patch(
+            f'/api/superadmin/users/{self.super_admin.id}/role/',
+            {'role': 'HR'},
+            format='json'
+        )
+        force_authenticate(request, user=self.super_admin)
+        response = SuperAdminUserRoleUpdateView.as_view()(request, user_id=self.super_admin.id)
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('Cannot demote the only active Super Admin', response.data['message'])
+
+    def test_permissions_matrix_get_and_update(self):
+        from apps.superadmin.views import SuperAdminPermissionsMatrixView
+        from apps.accounts.models import RolePermission
+        from apps.audit.models import AuditLog
+
+        request = self.factory.get('/api/superadmin/permissions/matrix/')
+        force_authenticate(request, user=self.super_admin)
+        response = SuperAdminPermissionsMatrixView.as_view()(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('matrix', response.data['data'])
+        self.assertIn('catalog', response.data['data'])
+
+        new_perms = ['GOAL_ASSIGN', 'EVIDENCE_REVIEW', 'MEETING_MANAGE']
+        update_request = self.factory.put(
+            '/api/superadmin/permissions/matrix/',
+            {'role': 'MANAGER', 'permissions': new_perms},
+            format='json'
+        )
+        force_authenticate(update_request, user=self.super_admin)
+        update_response = SuperAdminPermissionsMatrixView.as_view()(update_request)
+        self.assertEqual(update_response.status_code, 200)
+
+        db_perms = set(RolePermission.objects.filter(role='MANAGER').values_list('permission_code', flat=True))
+        self.assertEqual(db_perms, set(new_perms))
+
+        audit = AuditLog.objects.filter(action='ROLE_PERMISSIONS_UPDATED', entity_id='MANAGER').first()
+        self.assertIsNotNone(audit)

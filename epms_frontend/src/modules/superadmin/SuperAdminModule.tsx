@@ -33,10 +33,10 @@ export const SuperAdminModule = () => {
           <p className="text-xs text-slate-500 mt-1">Immutable administrative action logs with IP addresses and timestamps.</p>
         </Link>
 
-        <Link to="/permissions/matrix" className="p-5 bg-white rounded-2xl border border-slate-200 hover:border-indigo-300 shadow-xs hover:shadow-md transition-all group">
+        <Link to="/superadmin/roles-permissions" className="p-5 bg-white rounded-2xl border border-slate-200 hover:border-indigo-300 shadow-xs hover:shadow-md transition-all group">
           <Settings2 className="text-indigo-600 mb-3" size={24} />
-          <h3 className="font-semibold text-slate-900 group-hover:text-indigo-600">Role Permissions Matrix</h3>
-          <p className="text-xs text-slate-500 mt-1">Configure granular RBAC permissions across all user roles.</p>
+          <h3 className="font-semibold text-slate-900 group-hover:text-indigo-600">Role & Permission Management</h3>
+          <p className="text-xs text-slate-500 mt-1">Assign user roles, configure granular RBAC permission matrices, and manage access policies.</p>
         </Link>
       </div>
     </div>

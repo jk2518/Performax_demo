@@ -115,13 +115,13 @@ const App = () => {
             {/* HR/Admin Management Routes */}
             <Route element={<ProtectedRoute allowedRoles={["ADMIN", "HR"]} />}>
               {/* Shared HR + Admin routes (employees, departments, org, etc.) */}
-              {adminRoutes.filter(r => !['/roles', '/permissions', '/permissions/matrix', '/permissions/assign', '/employees/:id/profile'].includes(r.path)).map((route) => (
+              {adminRoutes.filter(r => !['/roles', '/permissions', '/permissions/matrix', '/permissions/assign', '/superadmin/roles-permissions', '/employees/:id/profile'].includes(r.path)).map((route) => (
                 <Route key={route.path} path={route.path} element={route.element} />
               ))}
 
               {/* ADMIN-only routes — Roles & Permissions management */}
               <Route element={<ProtectedRoute requiredPermissions={["PERMISSION_MANAGE"]} />}>
-                {adminRoutes.filter(r => ['/roles', '/permissions', '/permissions/matrix', '/permissions/assign'].includes(r.path)).map((route) => (
+                {adminRoutes.filter(r => ['/roles', '/permissions', '/permissions/matrix', '/permissions/assign', '/superadmin/roles-permissions'].includes(r.path)).map((route) => (
                   <Route key={route.path} path={route.path} element={route.element} />
                 ))}
               </Route>

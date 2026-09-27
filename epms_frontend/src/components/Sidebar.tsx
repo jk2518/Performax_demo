@@ -59,6 +59,7 @@ const ADMIN_ITEMS: NavItem[] = [
   { label: "Organizational Teams", to: "/teams", icon: Users },
   { label: "Financial Cycles", to: "/financial-years", icon: Calendar },
   { label: "Evaluation Criteria", to: "/performance-categories", icon: Layers },
+  { label: "Role & Permissions", to: "/superadmin/roles-permissions", icon: ShieldCheck, adminOnly: true },
   { label: "Security Roles", to: "/roles", icon: ShieldCheck, adminOnly: true },
   { label: "Access Permissions", to: "/permissions", icon: ShieldCheck, adminOnly: true, end: true },
   { label: "Permissions Matrix", to: "/permissions/matrix", icon: ShieldCheck, adminOnly: true },
