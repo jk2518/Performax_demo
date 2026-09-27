@@ -144,32 +144,61 @@ const LoginPage = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.trim(), otp: otpCode.trim() }),
       });
-      const data = await res.json();
+      const rawData = await res.json();
       if (!res.ok) {
-        throw new Error(data.message || "Invalid or expired verification code.");
+        throw new Error(rawData.message || "Invalid or expired verification code.");
       }
 
-      const authData = data.data;
+      const authData = rawData.data || rawData;
+      const accessToken = authData.accessToken || authData.access || rawData.accessToken || rawData.access;
+      const refreshToken = authData.refreshToken || authData.refresh || rawData.refreshToken || rawData.refresh;
+      const rawUser = authData.user || rawData.user || {};
+
+      const roles = rawUser.roles || authData.roles || rawData.roles || [rawUser.role || "EMPLOYEE"];
+      const primaryRole = rawUser.role || roles[0] || "EMPLOYEE";
+
       const userPayload: any = {
-        accessToken: authData.access,
-        token: authData.access,
-        refreshToken: authData.refresh,
+        accessToken,
+        token: accessToken,
+        refreshToken,
+        password_change_required: Boolean(
+          authData.password_change_required ||
+          rawUser.password_change_required ||
+          rawData.password_change_required
+        ),
         user: {
-          id: authData.user.id,
-          username: authData.user.username,
-          email: authData.user.email,
-          staffName: authData.profile?.full_name || authData.user.username,
-          role: authData.roles?.[0] || "INTERN",
-          department: authData.profile?.department,
-          designation: authData.profile?.designation,
-          roles: authData.roles || ["INTERN"],
-          permissions: authData.permissions || [],
+          id: rawUser.id,
+          employeeCode: rawUser.employeeCode || rawUser.profile?.employee_code || "DLQ-001",
+          username: rawUser.username,
+          email: rawUser.email,
+          staffName: rawUser.staffName || rawUser.profile?.full_name || rawUser.username,
+          role: primaryRole,
+          roles: roles,
+          permissions: rawUser.permissions || [`ROLE_${primaryRole}`, "ALL"],
+          currentDepartmentName: rawUser.currentDepartmentName || rawUser.profile?.department,
+          department: rawUser.currentDepartmentName || rawUser.profile?.department,
+          positionName: rawUser.positionName || rawUser.profile?.designation,
+          designation: rawUser.positionName || rawUser.profile?.designation,
+          levelRank: rawUser.levelRank || 1,
+          isActive: rawUser.isActive ?? true,
+          password_change_required: Boolean(
+            rawUser.password_change_required ||
+            authData.password_change_required ||
+            rawData.password_change_required
+          ),
+          profile: rawUser.profile,
         },
       };
 
       dispatch(loginSuccess(userPayload as any));
       toast.success("Authenticated via OTP!");
-      navigate(from, { replace: true });
+
+      if (userPayload.password_change_required) {
+        toast.info("First-time sign in detected. Please choose your permanent password.");
+        navigate("/change-password", { replace: true });
+      } else {
+        navigate(from, { replace: true });
+      }
     } catch (err: any) {
       setError(err.message || "OTP verification failed. Please try again.");
     } finally {

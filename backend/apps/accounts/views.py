@@ -374,26 +374,42 @@ class VerifyOTPView(APIView):
 
         user_dict = {
             'id': str(user.id),
+            'employeeCode': profile_data['employee_code'] if profile_data else 'DLQ-001',
+            'staffName': profile_data['full_name'] if profile_data else user.username,
             'username': user.username,
             'email': user.email,
             'role': user.role,
             'roles': roles,
             'permissions': [f"ROLE_{r}" for r in roles] + ["ALL"],
+            'password_change_required': bool(getattr(user, 'password_change_required', False)),
+            'password_changed_at': user.password_changed_at.isoformat() if getattr(user, 'password_changed_at', None) else None,
             'profile': profile_data,
+            'positionName': profile_data['designation'] if profile_data else user.role,
+            'currentDepartmentName': profile_data['department'] if profile_data else 'Engineering',
+            'levelRank': 1,
+            'isActive': user.is_active,
+            'accountLocked': False,
         }
 
-        return Response({
+        response_payload = {
             'code': 200,
             'message': 'OTP verification successful. Welcome back!',
             'access': access_token,
             'refresh': refresh_token,
             'accessToken': access_token,
             'refreshToken': refresh_token,
+            'roles': roles,
+            'password_change_required': bool(getattr(user, 'password_change_required', False)),
             'user': user_dict,
             'data': {
+                'access': access_token,
+                'refresh': refresh_token,
                 'accessToken': access_token,
                 'refreshToken': refresh_token,
+                'roles': roles,
+                'password_change_required': bool(getattr(user, 'password_change_required', False)),
                 'user': user_dict,
             }
-        })
+        }
+        return Response(response_payload)
 
