@@ -22,6 +22,7 @@ import KpiCategoryManager from './pages/kpi/KpiCategoryManager';
 import AuditLogPage from './pages/admin/AuditLogPage';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import ChangePasswordPage from './pages/ChangePasswordPage';
 
 // Specialized Manager Component (Temporary here, can be moved later)
 const ApprovalPage = () => <div className="p-6"><h1 className="text-2xl font-bold">Manager Approval Page</h1></div>;
@@ -62,6 +63,9 @@ const App = () => {
 
         {/* Protected Routes Wrapper */}
         <Route element={<ProtectedRoute />}>
+          {/* Fullscreen Security / Credential Rotation */}
+          <Route path="/change-password" element={<ChangePasswordPage />} />
+
           <Route element={<ActiveCycleProvider><MainLayout /></ActiveCycleProvider>}>
             {/* General Routes (Dashboard, Profile, etc.) */}
             {generalRoutes.map((route) => (

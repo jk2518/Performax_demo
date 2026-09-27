@@ -3,7 +3,6 @@ import ProfilePage from "../pages/ProfilePage";
 import EditProfilePage from "../pages/EditProfilePage";
 import NotificationsPage from "../pages/NotificationsPage";
 import InternModule from "../modules/intern/InternModule";
-
 export const generalRoutes = [
   { path: "/dashboard", element: <DashboardRouter /> },
   { path: "/intern", element: <InternModule /> },
@@ -11,3 +10,4 @@ export const generalRoutes = [
   { path: "/profile/edit", element: <EditProfilePage /> },
   { path: "/notifications", element: <NotificationsPage /> },
 ];
+
