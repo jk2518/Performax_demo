@@ -1,8 +1,6 @@
 from django.urls import path
 from . import views
 
-app_name = 'manager'
-
 urlpatterns = [
     # Manager Telemetry & Dashboard
     path('dashboard/', views.ManagerDashboardView.as_view(), name='dashboard'),
