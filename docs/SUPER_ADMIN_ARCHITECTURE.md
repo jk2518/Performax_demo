@@ -39,12 +39,9 @@
 | `/permissions/matrix`| `src/pages/admin/org/RolePermissionMatrix.tsx`| Interactive visual matrix for toggling RBAC permissions per role. |
 | `/audit-logs` | `src/pages/admin/AuditLogsPage.tsx` | Immutable audit trails: records user log, IP address, timestamp, mutations, and actions. |
 | `/analytics` | `src/pages/admin/StrategicAnalyticsPage.tsx` | Enterprise-wide bell curve score distributions, department averages, export CSV/PDF. |
-| `/360-feedback/admin` | `src/pages/feedback360/Feedback360AdminPage.tsx` | Configure 360 review matrices, anonymity thresholds, and cycle timelines. |
-| `/360-feedback/calibration` | `src/pages/feedback360/Feedback360CalibrationPage.tsx`| Committee review sessions for score calibration and anomaly adjustments. |
 
 ### 2. Sidebar Navigation Items
 - **Core Intelligence:** Executive Dashboard, Performance Appraisals, Performance Pulse, Continuous Feedback, 1-on-1 Sync Meetings, PIP Recovery Plans, IDP Plans, Strategic Analytics, System Audit Logs.
-- **360° Multi-Rater:** 360 Cycles & Matrix, Calibration Sessions, Pending 360 Reviews, My 360 Feedback Report.
 - **KRAs & Objectives:** KPI Intelligence Hub, Org KPI History, Goal Management, KRA Library, KPI Categories.
 - **Org Governance:** Employees Directory, Departments, Job Levels & Bands, Positions & Tracks, Organizational Teams, Financial Cycles, Evaluation Criteria, Security Roles, Access Permissions, Permissions Matrix, Assign Permissions.
 

@@ -21,6 +21,7 @@ import {
   Layers,
   X,
   FileClock,
+  Database,
   GraduationCap,
 } from "lucide-react";
 
@@ -62,6 +63,7 @@ const ADMIN_ITEMS: NavItem[] = [
   { label: "Access Permissions", to: "/permissions", icon: ShieldCheck, adminOnly: true, end: true },
   { label: "Permissions Matrix", to: "/permissions/matrix", icon: ShieldCheck, adminOnly: true },
   { label: "Assign Permissions", to: "/permissions/assign", icon: Zap, adminOnly: true },
+  { label: "Record Management", to: "/admin/records", icon: Database, adminOnly: true },
 ];
 
 interface SidebarProps {
@@ -206,8 +208,6 @@ const Sidebar = ({ onClose }: SidebarProps) => {
           </div>
         </div>
 
-
-
         {/* Performance & KRAs Accordion */}
         <div>
           <button
@@ -272,7 +272,7 @@ const Sidebar = ({ onClose }: SidebarProps) => {
 
             {mgmtOpen && (
               <div className="ml-5 pl-2.5 mt-1 border-l border-slate-200/80 space-y-0.5">
-                {ADMIN_ITEMS.map((item) => {
+                {ADMIN_ITEMS.filter((item) => !item.adminOnly || isAdmin).map((item) => {
                   const isActive = item.end
                     ? location.pathname === item.to
                     : location.pathname.startsWith(item.to);

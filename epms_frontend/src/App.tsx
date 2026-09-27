@@ -20,6 +20,7 @@ import {
 import { ActiveCycleProvider } from "./context/ActiveCycleContext";
 import KpiCategoryManager from './pages/kpi/KpiCategoryManager';
 import AuditLogPage from './pages/admin/AuditLogPage';
+import SystemRecordsPage from './pages/admin/SystemRecordsPage';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import ChangePasswordPage from './pages/ChangePasswordPage';
@@ -140,6 +141,11 @@ const App = () => {
                 <Route key={route.path} path={route.path} element={route.element} />
               ))}
               <Route path="/kpi/categories" element={<KpiCategoryManager />} />
+            </Route>
+
+            {/* System Admin record inventory */}
+            <Route element={<ProtectedRoute allowedRoles={["ADMIN"]} />}>
+              <Route path="/admin/records" element={<SystemRecordsPage />} />
             </Route>
 
             {/* Approvals — requires calibrate permission */}
