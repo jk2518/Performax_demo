@@ -237,7 +237,7 @@ DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER or 'noreply
 # Dailoqa Corporate Domain & Authentication Configuration
 ALLOWED_EMAIL_DOMAINS = [
     d.strip().lower()
-    for d in os.getenv('ALLOWED_EMAIL_DOMAINS', 'dailoqa.com,company.com,example.com').split(',')
+    for d in os.getenv('ALLOWED_EMAIL_DOMAINS', 'dailoqa.com,company.com,example.com,test.com').split(',')
     if d.strip()
 ]
 FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:5173')

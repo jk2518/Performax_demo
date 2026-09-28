@@ -3,6 +3,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from apps.accounts.models import UserRole
+from apps.accounts.services.role_permission_service import RolePermissionService
 from apps.accounts.serializers import (
     CustomTokenObtainPairSerializer,
     CustomTokenRefreshSerializer,
@@ -71,7 +72,7 @@ class CurrentUserView(APIView):
             'levelRank': 1,
             'currentDepartmentName': dept_name,
             'roles': roles,
-            'permissions': [f"ROLE_{r}" for r in roles] + ["ALL"],
+            'permissions': RolePermissionService.get_effective_permissions_for_user(user),
             'isActive': user.is_active,
             'accountLocked': False,
             'password_change_required': bool(user.password_change_required),
@@ -380,7 +381,7 @@ class VerifyOTPView(APIView):
             'email': user.email,
             'role': user.role,
             'roles': roles,
-            'permissions': [f"ROLE_{r}" for r in roles] + ["ALL"],
+            'permissions': RolePermissionService.get_effective_permissions_for_user(user),
             'password_change_required': bool(getattr(user, 'password_change_required', False)),
             'password_changed_at': user.password_changed_at.isoformat() if getattr(user, 'password_changed_at', None) else None,
             'profile': profile_data,

@@ -21,6 +21,7 @@ import {
   Layers,
   X,
   FileClock,
+  Database,
   GraduationCap,
   Bell,
 } from "lucide-react";
@@ -59,11 +60,13 @@ const HR_ORG_ITEMS: NavItem[] = [
   { label: "Positions & Tracks", to: "/positions", icon: Briefcase },
   { label: "Organizational Teams", to: "/teams", icon: Users },
   { label: "Financial Cycles", to: "/financial-years", icon: Calendar },
-  { label: "Evaluation Criteria", to: "/performance-categories", icon: Layers },
-];
-
 const SUPERADMIN_ORG_ITEMS: NavItem[] = [
   { label: "Role & Permission", to: "/superadmin/roles-permissions", icon: ShieldCheck },
+  { label: "Security Roles", to: "/roles", icon: ShieldCheck },
+  { label: "Access Permissions", to: "/permissions", icon: ShieldCheck, end: true },
+  { label: "Permissions Matrix", to: "/permissions/matrix", icon: ShieldCheck },
+  { label: "Assign Permissions", to: "/permissions/assign", icon: Zap },
+  { label: "Record Management", to: "/admin/records", icon: Database },
   { label: "Employees Directory", to: "/employees", icon: Users },
   { label: "Departments", to: "/departments", icon: Building2 },
   { label: "Job Levels & Bands", to: "/job-levels", icon: Zap },
@@ -71,7 +74,6 @@ const SUPERADMIN_ORG_ITEMS: NavItem[] = [
   { label: "Organizational Teams", to: "/teams", icon: Users },
   { label: "Financial Cycles", to: "/financial-years", icon: Calendar },
   { label: "Evaluation Criteria", to: "/performance-categories", icon: Layers },
-  { label: "Permissions Matrix", to: "/permissions/matrix", icon: ShieldCheck },
 ];
 
 interface SidebarProps {
@@ -294,7 +296,6 @@ const Sidebar = ({ onClose }: SidebarProps) => {
             )}
           </div>
         )}
-
         {/* Performance & KRAs Accordion */}
         <div>
           <button

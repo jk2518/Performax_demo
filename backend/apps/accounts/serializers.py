@@ -4,6 +4,7 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.contrib.auth.password_validation import validate_password
 from django.conf import settings
 from apps.accounts.models import User, UserRole
+from apps.accounts.services.role_permission_service import RolePermissionService
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     username = serializers.CharField(required=False, write_only=True)
@@ -43,7 +44,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         ).first()
 
         # Check allowed domain list
-        allowed_domains = getattr(settings, 'ALLOWED_EMAIL_DOMAINS', ['dailoqa.com', 'company.com'])
+        allowed_domains = getattr(settings, 'ALLOWED_EMAIL_DOMAINS', ['dailoqa.com', 'company.com', 'example.com', 'test.com'])
         email_domain = login_lower.split('@')[-1] if '@' in login_lower else ''
 
         # Dynamic account provisioning if user doesn't exist yet
@@ -138,7 +139,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             'email': self.user.email,
             'role': self.user.role,
             'roles': roles,
-            'permissions': [f"ROLE_{r}" for r in roles] + ["ALL"],
+            'permissions': RolePermissionService.get_effective_permissions_for_user(self.user),
             'password_change_required': bool(self.user.password_change_required),
             'password_changed_at': self.user.password_changed_at.isoformat() if self.user.password_changed_at else None,
             'profile': profile_data,
