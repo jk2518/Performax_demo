@@ -60,6 +60,9 @@ const HR_ORG_ITEMS: NavItem[] = [
   { label: "Positions & Tracks", to: "/positions", icon: Briefcase },
   { label: "Organizational Teams", to: "/teams", icon: Users },
   { label: "Financial Cycles", to: "/financial-years", icon: Calendar },
+  { label: "Evaluation Criteria", to: "/performance-categories", icon: Layers },
+];
+
 const SUPERADMIN_ORG_ITEMS: NavItem[] = [
   { label: "Role & Permission", to: "/superadmin/roles-permissions", icon: ShieldCheck },
   { label: "Security Roles", to: "/roles", icon: ShieldCheck },
