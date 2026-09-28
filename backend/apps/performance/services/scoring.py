@@ -39,6 +39,14 @@ class ScoringService:
         return 'NEEDS_IMPROVEMENT'
 
     @classmethod
+    def calculate_weighted_goal_progress(cls, goals) -> Decimal:
+        if not goals:
+            return Decimal('0.00')
+        total = Decimal(len(goals))
+        total_pct = sum(Decimal(str(getattr(g, 'completion_percentage', 0) or 0)) for g in goals)
+        return round(total_pct / total, 2)
+
+    @classmethod
     def calculate_cycle_score(cls, employee, cycle) -> dict:
         # 1. Goals and KPIs calculation
         goals = Goal.objects.filter(employee=employee, cycle=cycle)

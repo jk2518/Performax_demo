@@ -85,7 +85,7 @@ const ManagerEvaluation = () => {
   const buildPayload = () => {
     const allQIds = Array.from(new Set([...Object.keys(managerRatings), ...Object.keys(managerComments)]));
     return allQIds.map(qId => ({
-      questionId: isNaN(Number(qId)) ? qId : Number(qId),
+      questionId: Number(qId),
       ratingValue: managerRatings[qId] || 0,
       comment: managerComments[qId] || null,
     }));
@@ -119,7 +119,7 @@ const ManagerEvaluation = () => {
   );
 
   const isManager = formData.managerId != null
-    ? String(user?.id).toLowerCase() === String(formData.managerId).toLowerCase() || user?.roles?.includes('MANAGER') || (user as any)?.role === 'MANAGER' || isAdmin || isHR
+    ? Number(user?.id) === Number(formData.managerId)
     : !(isHR || isAdmin);
   const isReadOnly = !isManager || formData.appraisalStatus === 'HR_APPROVED' || formData.appraisalStatus === 'FINALIZED';
   const isDisabled = isSubmitting || isReadOnly;

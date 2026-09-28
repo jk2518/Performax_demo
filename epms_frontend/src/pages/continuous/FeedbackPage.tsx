@@ -41,8 +41,17 @@ const panelStyle: React.CSSProperties = {
 
 const FEEDBACK_TYPE_STYLE: Record<string, { bg: string; text: string; border: string }> = {
   [FeedbackType.PRAISE]:      { bg: '#ECFDF5', text: '#047857', border: '#A7F3D0' },
+  'POSITIVE':                 { bg: '#ECFDF5', text: '#047857', border: '#A7F3D0' },
+  'REWARDS':                  { bg: '#ECFDF5', text: '#047857', border: '#A7F3D0' },
   [FeedbackType.IMPROVEMENT]: { bg: '#FFFBEB', text: '#B45309', border: '#FDE68A' },
+  'CONSTRUCTIVE':             { bg: '#FFFBEB', text: '#B45309', border: '#FDE68A' },
+  'COACHING':                 { bg: '#FFFBEB', text: '#B45309', border: '#FDE68A' },
+  'OBSERVATION':              { bg: '#FFFBEB', text: '#B45309', border: '#FDE68A' },
+  'PROGRESS':                 { bg: '#FFFBEB', text: '#B45309', border: '#FDE68A' },
+  'SATISFACTORY':             { bg: '#FFFBEB', text: '#B45309', border: '#FDE68A' },
+  'SUGGESTION':               { bg: '#FFFBEB', text: '#B45309', border: '#FDE68A' },
   [FeedbackType.WARNING]:     { bg: '#FFF5F5', text: '#B91C1C', border: '#FECACA' },
+  'NEGATIVE':                 { bg: '#FFF5F5', text: '#B91C1C', border: '#FECACA' },
 };
 
 const officeStyles = `
@@ -285,18 +294,18 @@ const ReplyItem = ({
   editingReplyId, editReplyText, setEditReplyText, setEditingReplyId,
   handleUpdateReply, handleScrollToParent, onContextMenu, isUpdatingReply
 }: {
-  reply: any; allReplies: any[]; user: any; authorId: number;
-  highlightedReplyId: number | null; editingReplyId: number | null;
+  reply: any; allReplies: any[]; user: any; authorId: number | string;
+  highlightedReplyId: number | string | null; editingReplyId: number | string | null;
   editReplyText: string; setEditReplyText: (val: string) => void;
-  setEditingReplyId: (val: number | null) => void;
-  handleUpdateReply: (id: number) => void;
-  handleScrollToParent: (parentId: number) => void;
+  setEditingReplyId: (val: number | string | null) => void;
+  handleUpdateReply: (id: any) => void;
+  handleScrollToParent: (parentId: any) => void;
   onContextMenu: (e: React.MouseEvent, reply: any) => void;
   isUpdatingReply: boolean;
 }) => {
-  const isCurrentUser = reply.employeeId === user?.id;
-  const isAuthor = reply.employeeId === authorId;
-  const isHighlighted = highlightedReplyId === reply.replyId;
+  const isCurrentUser = String(reply.employeeId) === String(user?.id);
+  const isAuthor = String(reply.employeeId) === String(authorId);
+  const isHighlighted = String(highlightedReplyId) === String(reply.replyId);
 
   const bubbleStyle: React.CSSProperties = isCurrentUser
     ? { background: '#6366F1', color: '#FFFFFF', borderRadius: '18px 18px 4px 18px', padding: '10px 14px', minWidth: 120, position: 'relative', boxShadow: '0 2px 8px rgba(99,102,241,0.08)' }
@@ -375,8 +384,9 @@ const ReplyItem = ({
 };
 
 const FeedbackPage = () => {
-  const { user, isManager, isAdmin, isHR } = useAuth();
-  const canCreate = isManager;
+  const { user, isManager, isAdmin, isHR, isIntern, hasPermission } = useAuth();
+  const canViewFeedback = isAdmin || hasPermission('FEEDBACK_VIEW') || isManager || isHR || isIntern;
+  const canCreate = isManager || isAdmin || isHR || hasPermission('FEEDBACK_GIVE');
 
   const [perspective, setPerspective] = useState<'all' | 'received' | 'given'>('all');
   const [currentPage, setCurrentPage] = useState(1);
@@ -434,9 +444,9 @@ const FeedbackPage = () => {
   const [newTagName, setNewTagName] = useState("");
   const [tagToDelete, setTagToDelete] = useState<number | null>(null);
   const [feedbackToDelete, setFeedbackToDelete] = useState<number | null>(null);
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [editingEmployee, setEditingEmployee] = useState<{ id: number; name: string } | null>(null);
-  const [expandedFeedbackId, setExpandedFeedbackId] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<number | string | null>(null);
+  const [editingEmployee, setEditingEmployee] = useState<{ id: number | string; name: string } | null>(null);
+  const [expandedFeedbackId, setExpandedFeedbackId] = useState<number | string | null>(null);
 
   const deptEmployees = employees?.filter(emp =>
     emp.currentDepartmentName && user?.currentDepartmentName &&
@@ -463,24 +473,22 @@ const FeedbackPage = () => {
         (emp.levelRank === undefined || emp.levelRank === null || user?.levelRank === undefined || user?.levelRank === null || emp.levelRank >= user.levelRank)
       );
 
-  const blankFeedback = { employeeId: 0, tagId: "" as number | "", feedbackType: FeedbackType.PRAISE, description: "" };
+  const blankFeedback = { employeeId: "" as number | string, tagId: "" as number | "", feedbackType: FeedbackType.PRAISE, description: "" };
   const [showModal, setShowModal] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<ContinuousStatus>(ContinuousStatus.PUBLISHED);
   const [newFeedback, setNewFeedback] = useState<{
-    employeeId: number;
+    employeeId: number | string;
     tagId: number | "";
     feedbackType: FeedbackType;
     description: string;
-
   }>({
-    employeeId: 0,
+    employeeId: "",
     tagId: "",
     feedbackType: FeedbackType.PRAISE,
     description: "",
-
   });
 
-  const selectedEmp = employees?.find(e => e.id === newFeedback.employeeId);
+  const selectedEmp = employees?.find(e => String(e.id) === String(newFeedback.employeeId) || String((e as any).userId) === String(newFeedback.employeeId));
 
   const handleCreate = async (e: React.FormEvent, status?: ContinuousStatus) => {
     if (e) e.preventDefault();
@@ -492,10 +500,9 @@ const FeedbackPage = () => {
       const resolvedStatus = status || (editingId ? undefined : submitStatus);
       const body = {
         employeeId: newFeedback.employeeId,
-        tagId: newFeedback.tagId as number,
+        tagId: Number(newFeedback.tagId),
         feedbackType: newFeedback.feedbackType,
         description: newFeedback.description,
-
         managerId: user.id,
         status: resolvedStatus,
       };
@@ -509,7 +516,7 @@ const FeedbackPage = () => {
       setShowModal(false);
       setEditingId(null);
       setEditingEmployee(null);
-      setNewFeedback({ employeeId: 0, tagId: "", feedbackType: FeedbackType.PRAISE, description: "" });
+      setNewFeedback({ employeeId: "", tagId: "", feedbackType: FeedbackType.PRAISE, description: "" });
     } catch (err: any) {
       toast.error("Failed to save feedback.");
     }
@@ -547,7 +554,7 @@ const FeedbackPage = () => {
 
   const handleEdit = (fb: any) => {
     setEditingId(fb.feedbackId);
-    const emp = employees?.find(e => e.id === fb.employeeId);
+    const emp = employees?.find(e => String(e.id) === String(fb.employeeId) || String((e as any).userId) === String(fb.employeeId));
     setEditingEmployee({ id: fb.employeeId, name: emp?.staffName || fb.employeeName || 'Unknown' });
     setNewFeedback({
       employeeId: fb.employeeId,
@@ -558,7 +565,7 @@ const FeedbackPage = () => {
     setShowModal(true);
   };
 
-  const handlePublish = async (id: number) => {
+  const handlePublish = async (id: number | string) => {
     try {
       await publishFeedback(id).unwrap();
       toast.success('Feedback published successfully!');
@@ -590,10 +597,18 @@ const FeedbackPage = () => {
   const endIndex = startIndex + feedbacks.length;
 
   const publishedFeedbacks = feedbacks?.filter(f => f.status === ContinuousStatus.PUBLISHED) || [];
-  const stats = {
-    praise: Math.round((publishedFeedbacks.filter(f => f.feedbackType === FeedbackType.PRAISE).length / (publishedFeedbacks.length || 1)) * 100),
-    improvement: Math.round((publishedFeedbacks.filter(f => f.feedbackType === FeedbackType.IMPROVEMENT).length / (publishedFeedbacks.length || 1)) * 100),
-    correction: Math.round((publishedFeedbacks.filter(f => f.feedbackType === FeedbackType.WARNING).length / (publishedFeedbacks.length || 1)) * 100),
+  const praiseList = [FeedbackType.PRAISE, 'POSITIVE', 'REWARDS'];
+  const imprList = [FeedbackType.IMPROVEMENT, 'CONSTRUCTIVE', 'COACHING', 'OBSERVATION', 'PROGRESS', 'SATISFACTORY', 'SUGGESTION'];
+  const warnList = [FeedbackType.WARNING, 'NEGATIVE'];
+
+  const stats = (feedbackStats && (feedbackStats.totalPublished || 0) > 0 && perspective === 'all' && !filterFeedbackType && !filterTagId && !filterCreatedAfter && !filterCreatedBefore) ? {
+    praise: Math.round((((feedbackStats as any).praise || 0) / feedbackStats.totalPublished) * 100),
+    improvement: Math.round((((feedbackStats as any).improvement || 0) / feedbackStats.totalPublished) * 100),
+    correction: Math.round((((feedbackStats as any).warning || 0) / feedbackStats.totalPublished) * 100),
+  } : {
+    praise: Math.round((publishedFeedbacks.filter(f => praiseList.includes(f.feedbackType)).length / (publishedFeedbacks.length || 1)) * 100),
+    improvement: Math.round((publishedFeedbacks.filter(f => imprList.includes(f.feedbackType)).length / (publishedFeedbacks.length || 1)) * 100),
+    correction: Math.round((publishedFeedbacks.filter(f => warnList.includes(f.feedbackType)).length / (publishedFeedbacks.length || 1)) * 100),
   };
   const btnPageStyle = (active: boolean): React.CSSProperties => ({
     width: 30, height: 30, borderRadius: 6, fontSize: 11, fontWeight: 600, border: 'none', cursor: 'pointer',
@@ -715,21 +730,20 @@ const FeedbackPage = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
         {/* Main Feed */}
         <div className="lg:col-span-2 space-y-4 order-2 lg:order-1 office-timeline-line">
-          {(isAdmin || isHR) && (
+          {!canViewFeedback && (
             <div style={{ background: '#FFFBEB', border: '1px dashed #F59E0B', borderRadius: 16, padding: '32px 24px', textAlign: 'center' }}>
               <h3 style={{ fontSize: 15, fontWeight: 700, color: '#78350F', marginBottom: 6 }}>Access Restricted</h3>
-              <p style={{ fontSize: 12, color: '#92400E', marginBottom: 14 }}>Admins are restricted to viewing performance history only. Feedback details are hidden.</p>
-              <a href="/performance-history" className="office-button-primary" style={{ background: '#78350F', textDecoration: 'none' }}>Go to Performance History</a>
+              <p style={{ fontSize: 12, color: '#92400E', marginBottom: 14 }}>You are not authorized to view continuous feedback details.</p>
             </div>
           )}
 
-          {!(isAdmin || isHR) && feedbacks?.length === 0 && (
+          {canViewFeedback && feedbacks?.length === 0 && (
             <div style={{ padding: '48px 24px', textAlign: 'center', border: '2px dashed #E2E8F0', borderRadius: 20 }}>
               <p style={{ fontSize: 13, color: '#64748B' }}>No feedback entries yet.</p>
             </div>
           )}
 
-          {!(isAdmin || isHR) && feedbacks?.map((fb) => {
+          {canViewFeedback && feedbacks?.map((fb) => {
             const typeStyle = FEEDBACK_TYPE_STYLE[fb.feedbackType] || FEEDBACK_TYPE_STYLE[FeedbackType.PRAISE];
             return (
               <div key={fb.feedbackId} className="office-feed-card group">
@@ -741,8 +755,8 @@ const FeedbackPage = () => {
                     <div>
                       <h3 style={{ fontSize: 13, fontWeight: 700, color: '#0F172A' }}>
                         {fb.managerName}
-                        {fb.employeeId !== user?.id && <span style={{ color: '#64748B', fontWeight: 400, marginLeft: 4, fontSize: 12 }}>to {fb.employeeName}</span>}
-                        {fb.employeeId === user?.id && fb.managerId === user?.id && <span style={{ color: '#64748B', fontWeight: 400, marginLeft: 4, fontSize: 12 }}>(Self)</span>}
+                        {String(fb.employeeId) !== String(user?.id) && <span style={{ color: '#64748B', fontWeight: 400, marginLeft: 4, fontSize: 12 }}>to {fb.employeeName}</span>}
+                        {String(fb.employeeId) === String(user?.id) && String(fb.managerId) === String(user?.id) && <span style={{ color: '#64748B', fontWeight: 400, marginLeft: 4, fontSize: 12 }}>(Self)</span>}
                       </h3>
                       <p style={{ fontSize: 11, color: '#94A3B8', marginTop: 1 }}>
                         {fb.publishedAt
@@ -760,12 +774,12 @@ const FeedbackPage = () => {
                     <span style={{ fontSize: 9, fontWeight: 700, background: typeStyle.bg, color: typeStyle.text, border: `1px solid ${typeStyle.border}`, borderRadius: 6, padding: '3px 8px', textTransform: 'uppercase' }}>
                       {fb.feedbackType}
                     </span>
-                    {(fb.managerId === user?.id || isAdmin || isHR) && (
+                    {(String(fb.managerId) === String(user?.id) || String(fb.createdBy) === String(user?.id) || isAdmin || isHR) && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                         <button onClick={() => handleEdit(fb)} style={{ padding: 5, background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', borderRadius: 6 }} className="hover:bg-[#EEF2FF] hover:text-[#6366F1] transition-colors">
                           <svg style={{ width: 14, height: 14 }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                         </button>
-                        <button onClick={() => setFeedbackToDelete(fb.feedbackId)} style={{ padding: 5, background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', borderRadius: 6 }} className="hover:bg-[#FFF5F5] hover:text-[#B91C1C] transition-colors">
+                        <button onClick={() => setFeedbackToDelete(fb.feedbackId as any)} style={{ padding: 5, background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', borderRadius: 6 }} className="hover:bg-[#FFF5F5] hover:text-[#B91C1C] transition-colors">
                           <svg style={{ width: 14, height: 14 }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                         </button>
                       </div>
@@ -793,7 +807,7 @@ const FeedbackPage = () => {
                     </svg>
                     Replies{(fb.replyCount ?? 0) > 0 ? ` (${fb.replyCount})` : ''}
                   </button>
-                  {fb.status === ContinuousStatus.DRAFT && fb.managerId === user?.id && (
+                  {fb.status === ContinuousStatus.DRAFT && (fb.managerId === user?.id || isAdmin || isHR) && (
                     <button type="button" onClick={() => handlePublish(fb.feedbackId)} disabled={isPublishing}
                       className="office-button-primary"
                       style={{ padding: '6px 12px', fontSize: 11 }}>
@@ -842,14 +856,14 @@ const FeedbackPage = () => {
             </div>
             <div>
               <p style={{ fontSize: 10, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 3 }}>
-                {perspective === 'received' ? 'Received Published' : perspective === 'given' ? 'Given Published' : isManager ? 'Total Published' : 'Total Received'}
+                {perspective === 'received' ? 'Received Published' : perspective === 'given' ? 'Given Published' : 'Total Published'}
               </p>
               <p style={{ fontSize: 22, fontWeight: 800, color: '#0F172A' }}>
-                {perspective === 'received' ? (feedbackResponse?.totalElements || 0) : perspective === 'given' ? (feedbackStats?.totalPublished || 0) : isManager ? (feedbackStats?.totalPublished || 0) : totalItems}
+                {perspective === 'received' ? (feedbackResponse?.totalElements || 0) : perspective === 'given' ? (feedbackResponse?.totalElements || 0) : (feedbackStats?.totalPublished || totalItems)}
               </p>
             </div>
           </div>
-          {isManager && perspective !== 'received' && (
+          {(isManager || isAdmin || isHR) && perspective !== 'received' && (
             <button type="button"
               onClick={() => { setFilterStatus(ContinuousStatus.DRAFT); setCurrentPage(1); }}
               className="office-panel hover:border-[#FDE68A] transition-colors"
@@ -890,7 +904,7 @@ const FeedbackPage = () => {
                       </div>
                     ) : (
                       <select required className="office-input" value={newFeedback.employeeId}
-                        onChange={e => setNewFeedback({ ...newFeedback, employeeId: Number(e.target.value) })}>
+                        onChange={e => setNewFeedback({ ...newFeedback, employeeId: e.target.value })}>
                         <option value="">Choose Staff</option>
                         {filteredEmployees?.map(emp => <option key={emp.id} value={emp.id}>{emp.staffName}</option>)}
                       </select>
@@ -984,7 +998,7 @@ const FeedbackPage = () => {
 
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, paddingTop: 16, borderTop: '1px solid #E2E8F0', flexWrap: 'wrap' }}>
                   <button type="button"
-                    onClick={() => { setShowModal(false); setEditingId(null); setEditingEmployee(null); setNewFeedback({ employeeId: 0, tagId: '', feedbackType: FeedbackType.PRAISE, description: '' }); }}
+                    onClick={() => { setShowModal(false); setEditingId(null); setEditingEmployee(null); setNewFeedback({ employeeId: '', tagId: '', feedbackType: FeedbackType.PRAISE, description: '' }); }}
                     className="office-button-secondary">
                     Cancel
                   </button>
@@ -1047,7 +1061,7 @@ const FeedbackPage = () => {
   );
 };
 
-const FeedbackReplies = ({ feedbackId, authorId }: { feedbackId: number; authorId: number }) => {
+const FeedbackReplies = ({ feedbackId, authorId }: { feedbackId: number | string; authorId: number | string }) => {
   const { user } = useAuth();
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; reply: any } | null>(null);
 
@@ -1068,21 +1082,21 @@ const FeedbackReplies = ({ feedbackId, authorId }: { feedbackId: number; authorI
     }
   };
 
-  const { data: replies, isLoading } = useGetFeedbackRepliesQuery(feedbackId);
+  const { data: replies, isLoading } = useGetFeedbackRepliesQuery(feedbackId as any);
   const [replyToFeedback, { isLoading: isReplying }] = useReplyToFeedbackMutation();
   const [deleteReply] = useDeleteReplyMutation();
   const [updateReply, { isLoading: isUpdatingReply }] = useUpdateReplyMutation();
 
   const [newReply, setNewReply] = useState("");
-  const [replyingToId, setReplyingToId] = useState<number | null>(null);
-  const [replyTarget, setReplyTarget] = useState<{ id: number; name: string; text: string } | null>(null);
-  const [editingReplyId, setEditingReplyId] = useState<number | null>(null);
+  const [replyingToId, setReplyingToId] = useState<number | string | null>(null);
+  const [replyTarget, setReplyTarget] = useState<{ id: number | string; name: string; text: string } | null>(null);
+  const [editingReplyId, setEditingReplyId] = useState<number | string | null>(null);
   const [editReplyText, setEditReplyText] = useState("");
-  const [replyToDelete, setReplyToDelete] = useState<number | null>(null);
-  const [highlightedReplyId, setHighlightedReplyId] = useState<number | null>(null);
+  const [replyToDelete, setReplyToDelete] = useState<number | string | null>(null);
+  const [highlightedReplyId, setHighlightedReplyId] = useState<number | string | null>(null);
   const mainInputRef = useRef<HTMLInputElement>(null);
 
-  const handleScrollToParent = (parentId: number) => {
+  const handleScrollToParent = (parentId: number | string) => {
     const element = document.getElementById(`reply-${parentId}`);
     if (element) {
       element.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -1095,7 +1109,7 @@ const FeedbackReplies = ({ feedbackId, authorId }: { feedbackId: number; authorI
     e.preventDefault();
     if (!newReply.trim() || !user) return;
     try {
-      await replyToFeedback({ feedbackId, body: { replyText: newReply, employeeId: user.id, parentId: replyingToId ?? undefined } }).unwrap();
+      await replyToFeedback({ feedbackId: feedbackId as any, body: { replyText: newReply, employeeId: user.id as any, parentId: (replyingToId as any) ?? undefined } }).unwrap();
       setNewReply(""); setReplyingToId(null); setReplyTarget(null);
     } catch (err: any) { toast.error("Failed to post reply."); }
   };
@@ -1108,14 +1122,14 @@ const FeedbackReplies = ({ feedbackId, authorId }: { feedbackId: number; authorI
 
   const handleDeleteReply = async () => {
     if (!replyToDelete) return;
-    try { await deleteReply({ replyId: replyToDelete, feedbackId }).unwrap(); setReplyToDelete(null); }
+    try { await deleteReply({ replyId: replyToDelete as any, feedbackId: feedbackId as any }).unwrap(); setReplyToDelete(null); }
     catch (err) { console.error("Failed to delete reply", err); }
   };
 
-  const handleUpdateReply = async (replyId: number) => {
+  const handleUpdateReply = async (replyId: number | string) => {
     if (!editReplyText.trim() || !user) return;
     try {
-      await updateReply({ replyId, feedbackId, body: { replyText: editReplyText, employeeId: user.id } }).unwrap();
+      await updateReply({ replyId: replyId as any, feedbackId: feedbackId as any, body: { replyText: editReplyText, employeeId: user.id as any } }).unwrap();
       setEditingReplyId(null); setEditReplyText("");
     } catch (err) { console.error("Failed to update reply", err); }
   };

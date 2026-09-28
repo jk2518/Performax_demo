@@ -69,18 +69,19 @@ const ScorePreviewPage: React.FC = () => {
     StageIcon = CheckCircle2;
   }
 
-  // Check if any core component has rawScore == 0
+  // Check if any component has rawScore == 0
   const hasZeroComponent = 
     breakdown.kpiRawScore === 0 ||
     breakdown.managerRawScore === 0 ||
-    breakdown.selfRawScore === 0;
+    breakdown.selfRawScore === 0 ||
+    breakdown.feedbackRawScore === 0;
 
   // Component breakdown rows mapping
   const components = [
     { label: 'Key Performance Indicators (KPI)', raw: breakdown.kpiRawScore, weight: breakdown.kpiWeight, weighted: breakdown.kpiWeightedScore },
     { label: 'Manager Evaluation', raw: breakdown.managerRawScore, weight: breakdown.managerWeight, weighted: breakdown.managerWeightedScore },
     { label: 'Self Assessment', raw: breakdown.selfRawScore, weight: breakdown.selfWeight, weighted: breakdown.selfWeightedScore },
-    ...(breakdown.feedbackWeight > 0 ? [{ label: 'Continuous Feedback', raw: breakdown.feedbackRawScore, weight: breakdown.feedbackWeight, weighted: breakdown.feedbackWeightedScore }] : []),
+    { label: '360° Peer Feedback', raw: breakdown.feedbackRawScore, weight: breakdown.feedbackWeight, weighted: breakdown.feedbackWeightedScore },
   ];
 
   return (
@@ -204,7 +205,7 @@ const ScorePreviewPage: React.FC = () => {
           The final appraisal index is determined by multiplying each component's raw score by its respective weight:
         </p>
         <div style={{ background: '#F5F6F8', border: '0.5px solid #E0E2E8', borderRadius: 8, padding: '10px 12px', fontFamily: 'monospace', fontSize: 11, color: '#111827' }}>
-          Total = (KPI × {(breakdown.kpiWeight / 100).toFixed(2)}) + (Manager × {(breakdown.managerWeight / 100).toFixed(2)}) + (Self × {(breakdown.selfWeight / 100).toFixed(2)}){breakdown.feedbackWeight > 0 ? ` + (Feedback × ${(breakdown.feedbackWeight / 100).toFixed(2)})` : ''}
+          Total = (KPI × {(breakdown.kpiWeight / 100).toFixed(2)}) + (Manager × {(breakdown.managerWeight / 100).toFixed(2)}) + (Self × {(breakdown.selfWeight / 100).toFixed(2)}) + (Feedback × {(breakdown.feedbackWeight / 100).toFixed(2)})
         </div>
       </div>
 

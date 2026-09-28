@@ -23,6 +23,7 @@ import {
   CheckCircle2,
   Layers,
   ChevronRight,
+  Sparkles,
 } from "lucide-react";
 import React from "react";
 
@@ -93,6 +94,7 @@ const AppraisalFormDesign: React.FC = () => {
   const defaultFormName = () => {
     if (initialType === "MANAGER_EVALUATION")
       return "Manager Evaluation Template";
+    if (initialType === "FEEDBACK") return "360° Feedback Template";
     return "Self Assessment Template";
   };
 
@@ -259,6 +261,61 @@ const AppraisalFormDesign: React.FC = () => {
 
   const isFeedback = formType === "FEEDBACK";
 
+  const loadDemoTemplate = () => {
+    if (cycles && cycles.length > 0 && !selectedCycleId) {
+      const activeC = cycles.find((c: any) => c.status === "ACTIVE" || c.isActive) || cycles[0];
+      if (activeC) setSelectedCycleId(String(activeC.cycleId));
+    }
+    if (formType === "MANAGER_EVALUATION") {
+      setFormName("Manager Leadership & Milestone Review");
+      if (!setName) setSetName("Engineering & Tech Form Set");
+      setCategories([
+        {
+          name: "Milestone Execution & Architecture",
+          questions: [
+            { text: "Successfully delivers technical features on roadmap schedule", type: "RATING", secondaryType: "TEXT", isRequired: true },
+            { text: "Adheres to architectural standards, code reviews, and reliability requirements", type: "RATING", secondaryType: "TEXT", isRequired: true },
+            { text: "Proactively identifies project blockers and resolves technical risks", type: "RATING", secondaryType: "TEXT", isRequired: true },
+          ],
+        },
+        {
+          name: "Team Leadership & Culture",
+          questions: [
+            { text: "Conducts regular syncs, actively coaches and mentors junior engineers", type: "RATING", secondaryType: "TEXT", isRequired: true },
+            { text: "Demonstrates accountability, transparent communication, and team advocacy", type: "RATING", secondaryType: "TEXT", isRequired: true },
+          ],
+        },
+      ]);
+    } else {
+      setFormName("Software Engineer Self-Assessment Template");
+      if (!setName) setSetName("Engineering & Tech Form Set");
+      setCategories([
+        {
+          name: "Core Technical Competencies",
+          questions: [
+            { text: "Code Quality, Architecture, and Clean Code Principles", type: "RATING", secondaryType: "YESNO", isRequired: true },
+            { text: "System Scalability, Algorithmic Efficiency & Debugging", type: "RATING", secondaryType: "YESNO", isRequired: true },
+            { text: "Automated Testing, CI/CD Standards, and Production Observability", type: "RATING", secondaryType: "YESNO", isRequired: true },
+          ],
+        },
+        {
+          name: "Collaboration & Impact",
+          questions: [
+            { text: "Cross-Functional Collaboration, Active Listening & Team Knowledge Sharing", type: "RATING", secondaryType: "TEXT", isRequired: true },
+            { text: "Sprint Commitment Delivery, Ownership, and Problem Resolution", type: "RATING", secondaryType: "YESNO", isRequired: true },
+          ],
+        },
+        {
+          name: "Innovation & Growth",
+          questions: [
+            { text: "Continuous Learning, Innovation, and Adoption of Modern Technologies", type: "RATING", secondaryType: "TEXT", isRequired: false },
+          ],
+        },
+      ]);
+    }
+    toast.success("Demo template loaded into Form Builder!");
+  };
+
   const handleSaveForm = async () => {
     if (!selectedCycleId) {
       toast.warning("Please select an Appraisal Cycle first.");
@@ -269,7 +326,7 @@ const AppraisalFormDesign: React.FC = () => {
       return;
     }
     if (isFeedback && !targetRelationship) {
-      toast.warning("Please select a Target Relationship for this form.");
+      toast.warning("Please select a Target Relationship for this 360° form.");
       return;
     }
     if (isAssigned) {
@@ -326,7 +383,7 @@ const AppraisalFormDesign: React.FC = () => {
       }
       toast.success(isEditMode ? "Form updated!" : "Form saved!");
       if (isFeedback) {
-        navigate("/appraisal");
+        navigate(`/360-feedback/admin?cycleId=${selectedCycleId}`);
       } else {
         const cycle = cycles.find(
           (c) => Number(c.cycleId) === Number(selectedCycleId),
@@ -410,7 +467,9 @@ const AppraisalFormDesign: React.FC = () => {
           <button
             onClick={() => {
               if (isFeedback) {
-                navigate("/appraisal");
+                navigate(
+                  `/360-feedback/admin${selectedCycleId ? `?cycleId=${selectedCycleId}` : ""}`,
+                );
               } else {
                 const cycle = cycles.find(
                   (c) => Number(c.cycleId) === Number(selectedCycleId),
@@ -456,7 +515,27 @@ const AppraisalFormDesign: React.FC = () => {
             </h1>
           </div>
         </div>
-        <div className="flex items-center gap-2 self-start sm:self-auto">
+        <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+          {!isPreviewMode && (
+            <button
+              type="button"
+              onClick={loadDemoTemplate}
+              className="inline-flex items-center gap-1.5 transition-colors"
+              title="Instantly load pre-built demo sections and questions"
+              style={{
+                background: "#EEF3FD",
+                color: "#1A56DB",
+                border: "0.5px solid #B5D4F4",
+                borderRadius: 8,
+                padding: "7px 14px",
+                fontSize: 13,
+                fontWeight: 500,
+              }}
+            >
+              <Sparkles size={13} style={{ color: "#1A56DB" }} />
+              Load Demo Template
+            </button>
+          )}
           <button
             onClick={() => setIsPreviewMode(!isPreviewMode)}
             className="inline-flex items-center gap-2 transition-colors"
@@ -551,6 +630,7 @@ const AppraisalFormDesign: React.FC = () => {
                 >
                   <option value="SELF_ASSESSMENT">Self Assessment</option>
                   <option value="MANAGER_EVALUATION">Manager Evaluation</option>
+                  <option value="FEEDBACK">360° Feedback</option>
                 </select>
               </div>
               <div>

@@ -5,7 +5,7 @@ import { useCreateCycleMutation } from '../../features/appraisal/appraisalApi';
 import { useGetFinancialYearsQuery } from '../../features/appraisal/financialYearApi';
 import { CustomDateInput } from '../../components/common/CustomDateInput';
 import {
-  Calendar, ChevronLeft, Target, UserCheck, User, CheckCircle2, AlertCircle
+  Calendar, ChevronLeft, Target, UserCheck, MessageSquare, User, CheckCircle2, AlertCircle
 } from 'lucide-react';
 import { subDays, isBefore, format, addMonths, addYears } from 'date-fns';
 
@@ -40,7 +40,7 @@ const AppraisalCycleCreate: React.FC = () => {
     selfAssessmentDeadline: '', managerEvaluationDeadline: '', finalizationDeadline: '',
     evaluationPeriod: 'Q1-Q4 2024',
     status: 'PLANNING', isActive: false,
-    kpiWeight: 50, managerWeight: 30, feedbackWeight: 0, selfWeight: 20,
+    kpiWeight: 40, managerWeight: 30, feedbackWeight: 10, selfWeight: 20,
     financialYearId: ''
   });
 
@@ -84,7 +84,8 @@ const AppraisalCycleCreate: React.FC = () => {
     }
   }, [creationMode, formData.financialYearId, frequency, period, financialYears]);
 
-  const totalWeight = Number(formData.kpiWeight) + Number(formData.managerWeight) + Number(formData.selfWeight);
+  const totalWeight = Number(formData.kpiWeight) + Number(formData.managerWeight) +
+    Number(formData.feedbackWeight) + Number(formData.selfWeight);
 
   const calculateManualEndDate = (startDateValue: string, cycleLength: 'ANNUAL' | 'SEMI_ANNUAL') => {
     const start = new Date(startDateValue);
@@ -350,6 +351,7 @@ const AppraisalCycleCreate: React.FC = () => {
             <WeightRow label="KPI Component" icon={Target} field="kpiWeight" color="#1A56DB" />
             <WeightRow label="Manager Review" icon={UserCheck} field="managerWeight" color="#27500A" />
             <WeightRow label="Self Assessment" icon={User} field="selfWeight" color="#633806" />
+            <WeightRow label="360° Feedback" icon={MessageSquare} field="feedbackWeight" color="#444441" />
             {totalWeight !== 100 && (
               <div style={{ background: '#FCEBEB', border: '0.5px solid #F5C2C2', borderRadius: 8, padding: '10px 12px', display: 'flex', alignItems: 'start', gap: 8, marginTop: 16 }}>
                 <AlertCircle size={14} style={{ color: '#791F1F', flexShrink: 0, marginTop: 1 }} />

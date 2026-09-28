@@ -42,8 +42,12 @@ export const api = createApi({
     "IdpGoal",
     "IdpProgress",
     "AuditTrail",
-    "FinalScore",
     "Manager",
+    "SuperAdminUsers",
+    "SuperAdminRoles",
+    "SuperAdminPermissionsMatrix",
+    "Audit",
+    "ScheduledNotifications",
   ],
   endpoints: () => ({}),
   // This adds more context to traces
